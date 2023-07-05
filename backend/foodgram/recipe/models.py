@@ -25,7 +25,7 @@ class Tag(models.Model):
     slug = models.SlugField(max_length=50, unique=True)
 
 
-class Ricipe(models.Model):
+class Recipe(models.Model):
     author = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name='author')
     title = models.CharField(max_length=50)
@@ -38,3 +38,9 @@ class Ricipe(models.Model):
     ingredients = models.ManyToManyField(Ingredient)
     tag = models.ManyToManyField(Tag)
     cooking_time = models.PositiveIntegerField()
+
+
+class Favourites_Recipe(models.Model):
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name='user')
+    recipes = models.ManyToManyField(Recipe)
