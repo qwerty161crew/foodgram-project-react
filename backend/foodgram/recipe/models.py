@@ -44,3 +44,31 @@ class Favourites_Recipe(models.Model):
     user = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name='user')
     recipes = models.ManyToManyField(Recipe)
+
+
+class Follow(models.Model):
+    user = models.ForeignKey(
+        User,
+        verbose_name='Подписчик',
+        related_name='follower',
+        on_delete=models.CASCADE,
+    )
+    author = models.ForeignKey(
+        User,
+        verbose_name='Кумир',
+        related_name='following',
+        on_delete=models.CASCADE,
+    )
+
+    def __str__(self):
+        return f'{self.author.username} {self.user.username}'
+
+    class Meta:
+        verbose_name = ('Подписка')
+        verbose_name_plural = ('Подписки')
+        constraints = (
+            models.UniqueConstraint(
+                fields=['user', 'author'],
+                name='unique_user_author'
+            ),
+        )
