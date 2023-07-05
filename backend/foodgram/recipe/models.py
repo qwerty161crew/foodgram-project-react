@@ -18,11 +18,17 @@ class Ingredient(models.Model):
     count = models.PositiveIntegerField()
     unit = models.CharField(choices=UNIT_CHOICES, max_length=50)
 
+    def __str__(self):
+        return self.title
+
 
 class Tag(models.Model):
     title = models.CharField(max_length=50, unique=True)
     color = models.CharField(max_length=50)
     slug = models.SlugField(max_length=50, unique=True)
+
+    def __str__(self):
+        return self.title
 
 
 class Recipe(models.Model):
@@ -38,12 +44,22 @@ class Recipe(models.Model):
     ingredients = models.ManyToManyField(Ingredient)
     tag = models.ManyToManyField(Tag)
     cooking_time = models.PositiveIntegerField()
+    pub_date = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.title
+
+    class Meta:
+        ordering = ('-pub_date',)
 
 
 class Favourites_Recipe(models.Model):
     user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name='user_author')
+        User, on_delete=models.CASCADE, related_name='user')
     recipes = models.ManyToManyField(Recipe)
+
+    def __str__(self):
+        return self.user.username
 
 
 class Follow(models.Model):
