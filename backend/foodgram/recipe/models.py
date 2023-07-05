@@ -1,7 +1,7 @@
 from django.db import models
-from django.contrib.auth.models import User
 from djangoHexadecimal.fields import HexadecimalField
 from django.core.exceptions import ValidationError
+from users.models import User
 
 
 class Ingredient(models.Model):
@@ -15,7 +15,7 @@ class Ingredient(models.Model):
         (GRAM, 'грамм'),
     ]
     title = models.CharField(max_length=50)
-    count = models.PositiveIntegerField(max_length=50)
+    count = models.PositiveIntegerField()
     unit = models.CharField(choices=UNIT_CHOICES, max_length=50)
 
 
@@ -42,7 +42,7 @@ class Recipe(models.Model):
 
 class Favourites_Recipe(models.Model):
     user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name='user')
+        User, on_delete=models.CASCADE, related_name='user_author')
     recipes = models.ManyToManyField(Recipe)
 
 
