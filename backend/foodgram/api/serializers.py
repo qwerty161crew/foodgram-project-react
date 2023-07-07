@@ -3,7 +3,7 @@ from rest_framework import serializers
 from django.db import models
 from rest_framework.generics import get_object_or_404
 
-from recipe.models import Recipe, Tag, Ingredient, FavouritesRecipe, Follow
+from recipe.models import Recipe, Tag, Ingredient, FavouritesRecipe, Follow, ShoppingList
 from users.models import User
 
 
@@ -99,3 +99,12 @@ class FollowSerializer(serializers.ModelSerializer):
                 name='prevent_self_follow',
             )
         ]
+
+
+class ShoppingListSerializer(serializers.ModelSerializer):
+    user = serializers.SlugRelatedField(slug_field='title', read_only=True)
+    recipes = RecipeSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = ShoppingList
+        field = '__all__'
