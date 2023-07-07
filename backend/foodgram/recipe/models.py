@@ -1,6 +1,4 @@
 from django.db import models
-from djangoHexadecimal.fields import HexadecimalField
-from django.core.exceptions import ValidationError
 from users.models import User
 
 
@@ -56,7 +54,8 @@ class Recipe(models.Model):
 class Favourites_Recipe(models.Model):
     user = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name='user')
-    recipes = models.ManyToManyField(Recipe)
+    recipes = models.ForeignKey(
+        Recipe, related_name='favorite_recipe', on_delete=models.CASCADE)
 
     def __str__(self):
         return self.user.username
