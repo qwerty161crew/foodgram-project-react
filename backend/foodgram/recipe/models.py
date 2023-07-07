@@ -40,7 +40,7 @@ class Recipe(models.Model):
     )
     description = models.CharField(max_length=1000)
     ingredients = models.ManyToManyField(Ingredient)
-    tag = models.ManyToManyField(Tag)
+    tag = models.ManyToManyField(Tag, related_name='tag')
     cooking_time = models.PositiveIntegerField()
     pub_date = models.DateTimeField(auto_now_add=True)
 
