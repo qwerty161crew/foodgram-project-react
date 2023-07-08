@@ -60,7 +60,8 @@ class FavouritesRecipeSerializer(serializers.ModelSerializer):
         if FavouritesRecipe.objects.filter(recipes=self.context['user'].username).exists():
             raise serializers.ValidationError('У вас уже есть этот рецепт')
         if FavouritesRecipe.objects.filter(user=self.context['user']):
-            raise serializers.ValidationError('У вас есть этот рецепт')
+            raise serializers.ValidationError(
+                'Нельзя добавлять свой рецепт :)')
         return data
 
 
