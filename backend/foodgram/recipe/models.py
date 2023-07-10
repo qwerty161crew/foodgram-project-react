@@ -51,11 +51,11 @@ class Recipe(models.Model):
         ordering = ('-pub_date',)
 
 
-class FavouritesRecipe(models.Model):
+class FavoritesRecipe(models.Model):
     user = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name='user')
-    recipes = models.ForeignKey(
-        Recipe, related_name='favorite_recipe', on_delete=models.CASCADE)
+    recipe = models.ForeignKey(
+        Recipe, related_name='recipes_fovorite', on_delete=models.CASCADE)
 
     def __str__(self):
         return self.user.username
@@ -65,7 +65,7 @@ class FavouritesRecipe(models.Model):
         verbose_name_plural = ('Избранные')
         constraints = (
             models.UniqueConstraint(
-                fields=['user', 'recipes'],
+                fields=['user', 'recipe'],
                 name='unique_user_recipes'
             ),
         )
@@ -100,6 +100,6 @@ class Follow(models.Model):
 
 
 class ShoppingList(models.Model):
-    user = models.ForeignKey(User, related_name='user',
+    user = models.ForeignKey(User, related_name='user_shoppin_list',
                              on_delete=models.CASCADE)
     recipes = models.ManyToManyField(Recipe, related_name='recipe')
