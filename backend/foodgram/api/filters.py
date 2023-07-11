@@ -8,4 +8,5 @@ class RecipeFilter(filter_.FilterSet):
 
     class Meta:
         model = Recipe
-        fields = ('__all__')
+        fields = ('id', 'author', 'title', 'description',
+                  'ingredients', 'tag', 'cooking_time', 'pub_date')

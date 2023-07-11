@@ -3,7 +3,7 @@ from rest_framework import serializers
 from django.db import models
 from rest_framework.generics import get_object_or_404
 
-from recipe.models import Recipe, Tag, Ingredient, FavouritesRecipe, Follow, ShoppingList
+from recipe.models import Recipe, Tag, Ingredient, FavoritesRecipe, Follow, ShoppingList
 from users.models import User
 
 
@@ -54,12 +54,12 @@ class FavouritesRecipeSerializer(serializers.ModelSerializer):
 
     class Meta:
         field = ('__all__')
-        model = FavouritesRecipe
+        model = FavoritesRecipe
 
     def validate(self, data):
-        if FavouritesRecipe.objects.filter(recipes=self.context['user'].username).exists():
+        if FavoritesRecipe.objects.filter(recipes=self.context['user'].username).exists():
             raise serializers.ValidationError('У вас уже есть этот рецепт')
-        if FavouritesRecipe.objects.filter(user=self.context['user']):
+        if FavoritesRecipe.objects.filter(user=self.context['user']):
             raise serializers.ValidationError(
                 'Нельзя добавлять свой рецепт :)')
         return data

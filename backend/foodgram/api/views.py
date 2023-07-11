@@ -11,7 +11,7 @@ from recipe.models import Recipe
 class RecipeViewset(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
     serializer_class = RecipeSerializer
-    permission_classes = IsAuthOrReadOnly
+    permission_classes = (IsAuthOrReadOnly, )
     filterset_class = RecipeFilter
     pagination_class = CustomPagination
 
