@@ -1,17 +1,11 @@
 import os
 from pathlib import Path
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
-
-# SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-)q2ry*6z%s*otaeb(2olwgz#djo%o5(&p1e)y7svjeht_d=mv5'
 
-# SECURITY WARNING: don't run with debug turned on in production!
+
 DEBUG = True
 
 ALLOWED_HOSTS = []
@@ -27,9 +21,10 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'recipe',
-    'users',
     'rest_framework',
     'django_filters',
+    'rest_framework.authtoken',
+    'djoser',
 ]
 
 MIDDLEWARE = [
@@ -64,12 +59,8 @@ TEMPLATES = [
 WSGI_APPLICATION = 'foodgram.wsgi.application'
 
 
-# Database
-# https://docs.djangoproject.com/en/4.2/ref/settings/#databases
-
 DATABASES = {
     'default': {
-
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': os.getenv('POSTGRES_DB', 'foodgram'),
         'USER': os.getenv('POSTGRES_USER', 'foodgram_user'),
@@ -110,7 +101,6 @@ USE_I18N = True
 
 USE_TZ = True
 
-AUTH_USER_MODEL = 'users.User'
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
@@ -119,8 +109,23 @@ STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'static'
 
 MEDIA_URL = '/media/'
+
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-# Default primary key field type
-# https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
+
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+        'rest_framework.authentication.BasicAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+    ]
+}
+
+EMAIL_BACKEND = 'django.core.mail.backends.filebased.EmailBackend'
+
+EMAIL_FILE_PATH = BASE_DIR / 'sent_emails'
+
+EMAIL_FROM = 'from@example.com'

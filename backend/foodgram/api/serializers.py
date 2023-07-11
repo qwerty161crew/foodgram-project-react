@@ -2,9 +2,14 @@ import webcolors
 from rest_framework import serializers
 from django.db import models
 from rest_framework.generics import get_object_or_404
-
+from rest_framework.validators import UniqueValidator
+from django.core.validators import (
+    EmailValidator,
+    MaxLengthValidator,
+    RegexValidator,
+)
 from recipe.models import Recipe, Tag, Ingredient, FavoritesRecipe, Follow, ShoppingList
-from users.models import User
+from django.contrib.auth.models import User
 
 
 class Hex2NameColor(serializers.Field):
@@ -109,3 +114,41 @@ class ShoppingListSerializer(serializers.ModelSerializer):
     class Meta:
         model = ShoppingList
         field = '__all__'
+
+
+class UserSerializer(serializers.ModelSerializer):
+    email = serializers.EmailField(validators=[
+        UniqueValidator(queryset=User.objects.all()),
+        EmailValidator(),
+        MaxLengthValidator(254),
+    ],)
+
+    username = serializers.CharField(
+        validators=[
+            UniqueValidator(queryset=User.objects.all()),
+            RegexValidator(r'^[\w.@+-]+\Z'),
+            MaxLengthValidator(150),
+        ],
+    )
+
+    class Meta:
+        fields = ('__all__')
+        model = User
+
+    def update(self, instance, validated_data) -> User:
+        if 'role' in validated_data and self.context.get('change_self'):
+            validated_data.pop('role')
+        return super().update(instance, validated_data)
+
+    def validate_username(self: 'UserSerializer', value: str) -> str:
+        if value.lower() == 'me':
+            raise serializers.ValidationError(
+                'Использовать имя "me" запрещено.',
+            )
+        return value
+
+
+class CurrentUserSerializer(serializers.Serializer):
+    class Meta:
+        model = User
+        fields = ('username', 'email', 'first_name', 'last_name', 'password')
