@@ -6,7 +6,7 @@ from django.core.mail import send_mail
 
 from .pagination import CustomPagination
 from .permissions import IsAuthOrReadOnly, IsAdminOrReadOnly
-from .serializers import RecipeSerializer, TagtSerializer, UserSerializer
+from .serializers import RecipeSerializer, TagtSerializer, CreateUserSerializer
 from .filters import RecipeFilter
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -32,4 +32,4 @@ class TagViewset(viewsets.ModelViewSet):
 
 class UserViewset(viewsets.ModelViewSet):
     queryset = User.objects.all()
-    serializer_class = UserSerializer
+    serializer_class = CreateUserSerializer
