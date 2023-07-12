@@ -14,7 +14,7 @@ urlpatterns = [
     path('', include('api.urls'), name='api'),
     path('auth/', include('djoser.urls')),          # new
     re_path(r'^auth/', include('djoser.urls.authtoken')),
-    path('token/', TokenVerifyView.as_view(), name='token_obtain_pair'),
+    path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('verify/', TokenVerifyView.as_view(), name='token_ferify')
 ]

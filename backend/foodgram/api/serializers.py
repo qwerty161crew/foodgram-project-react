@@ -108,21 +108,33 @@ class FollowSerializer(serializers.ModelSerializer):
 
 
 class ShoppingListSerializer(serializers.ModelSerializer):
-    user = serializers.SlugRelatedField(slug_field='title', read_only=True)
+    user = serializers.SlugRelatedField(slug_field='username', read_only=True)
     recipes = RecipeSerializer(many=True, read_only=True)
 
     class Meta:
         model = ShoppingList
-        field = '__all__'
+        fields = ('id', 'user', 'recipes')
 
 
-class CreateUserSerializer(serializers.ModelSerializer):
+class ListUserSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(required=True)
-    password = serializers.CharField(required=True)
     first_name = serializers.CharField(required=True)
     last_name = serializers.CharField(required=True)
+    is_subscribed = serializers.BooleanField(write_only=True)
 
     class Meta:
         model = User
-        fields = ('username', 'email', 'first_name', 'last_name', 'password')
+        fields = ('username', 'email', 'first_name',
+                  'last_name', 'is_subscribed')
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        user = self.context['request'].user
+        follow = Follow.objects.filter(author=user, user=instance).exists()
+        data['is_subscribed'] = follow
+        return data
+
+
+class ChangePasswordSerializer(serializers.Serializer):
+    current_password = serializers.CharField(required=True)
+    new_password = serializers.CharField(required=True)
