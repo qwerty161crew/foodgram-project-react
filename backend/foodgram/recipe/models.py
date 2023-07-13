@@ -102,4 +102,13 @@ class Follow(models.Model):
 class ShoppingList(models.Model):
     user = models.ForeignKey(User, related_name='user_shoppin_list',
                              on_delete=models.CASCADE)
-    recipes = models.ManyToManyField(Recipe, related_name='recipe')
+    recipe = models.ManyToManyField(Recipe, related_name='recipe')
+
+
+    class Meta:
+        constraints = (
+            models.UniqueConstraint(
+                fields=['user', 'recipe'],
+                name='unique_user_recipe'
+            ),
+        )
