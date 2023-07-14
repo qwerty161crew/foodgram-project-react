@@ -123,24 +123,24 @@ class AddRecipeInShoppingCart(serializers.ModelSerializer):
     recipe = serializers.SlugRelatedField(
         slug_field='title',  queryset=Recipe.objects.all())
 
-    # def validate(self, data):
-    #     cart = ShoppingList.objects.filter(
-    #         user=self.context['request'].user, recipe__title=self.context['view'].kwargs.get('recipe_id')).exists()
-    #     if cart is True:
-    #         raise serializers.ValidationError(
-    #             'Вы уже добавили рецепт!')
-    #     return data
+    def validate(self, data):
+        cart = ShoppingList.objects.filter(
+            user=self.context['request'].user, recipe__id=self.context['view'].kwargs.get('recipe_id')).exists()
+        if cart is True:
+            raise serializers.ValidationError(
+                'Вы уже добавили рецепт!')
+        return data
 
     class Meta:
         model = ShoppingList
         fields = ('id', 'user', 'recipe')
 
-    # constraints = [
-    #     models.UniqueConstraint(
-    #         fields=['user', 'recipe'],
-    #         name='unique_user_recipe'
-    #     ),
-    # ]
+    constraints = [
+        models.UniqueConstraint(
+            fields=['user', 'recipe'],
+            name='unique_user_recipe'
+        ),
+    ]
 
 
 class ListUserSerializer(serializers.ModelSerializer):
