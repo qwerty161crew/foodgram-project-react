@@ -100,15 +100,18 @@ class Follow(models.Model):
 
 
 class ShoppingList(models.Model):
-    user = models.ForeignKey(User, related_name='user_shoppin_list',
+    user = models.ForeignKey(User, related_name='user_cart',
                              on_delete=models.CASCADE)
-    recipe = models.ManyToManyField(Recipe, related_name='recipe')
-
+    recipe = models.ForeignKey(
+        Recipe, related_name='recipe', on_delete=models.CASCADE)
 
     class Meta:
-        constraints = (
+        constraints = [
             models.UniqueConstraint(
                 fields=['user', 'recipe'],
                 name='unique_user_recipe'
-            ),
-        )
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f'{self.user} {self.recipe}'

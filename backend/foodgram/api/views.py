@@ -16,10 +16,14 @@ from django.core.mail import send_mail
 from django.contrib.auth.models import User
 
 
-from recipe.models import Recipe, ShoppingList
+from recipe.models import Recipe, ShoppingList, Follow
 from .pagination import CustomPagination
 from .permissions import IsAuthOrReadOnly, IsAdminOrReadOnly
-from .serializers import RecipeSerializer, TagtSerializer, ListUserSerializer, ShoppingListSerializer, ChangePasswordSerializer, CreateUserSerializers, AddRecipeInShoppingCart
+from .serializers import (RecipeSerializer, TagtSerializer,
+                          ListUserSerializer, ShoppingListSerializer,
+                          ChangePasswordSerializer, CreateUserSerializers,
+                          AddRecipeInShoppingCart, FollowSerializer,
+                          IngredientSerializer)
 from .filters import RecipeFilter
 
 
@@ -39,7 +43,7 @@ class TagViewset(viewsets.ModelViewSet):
     permission_classes = IsAdminOrReadOnly
 
 
-class ListUserViewset(viewsets.ModelViewSet):
+class ListUserViewset(mixins.ListModelMixin, viewsets.GenericViewSet):
     queryset = User.objects.all()
     serializer_class = ListUserSerializer
     pagination_class = PageNumberPagination
@@ -60,9 +64,6 @@ class AddRecipeInShoppingCart(mixins.CreateModelMixin, viewsets.GenericViewSet):
 
     def get_recipe(self):
         return get_object_or_404(Recipe, id=self.kwargs.get('recipe_id'))
-
-    def get_queryset(self):
-        return self.get_recipe()
 
     def perform_create(self, serializer) -> None:
         serializer.save(user=self.request.user, recipe=self.get_recipe())
@@ -87,3 +88,28 @@ class ChangePasswordViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
 
 class CreateUserViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
     serializer_class = CreateUserSerializers
+
+
+class FollowViewSet(viewsets.ModelViewSet):
+    serializer_class = FollowSerializer
+    permission_classes = (IsAuthenticated, )
+
+    def get_queryset(self):
+        return self.request.user.follower.all()
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+
+class FollowSubscriptionsViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
+    serializer_class = FollowSerializer
+    permission_classes = (IsAuthenticated, )
+
+    def get_queryset(self):
+        return Follow.objects.filter(user=self.request.user)
+
+
+class IngridientsViewSet(viewsets.ModelViewSet):
+    serializer_class = IngredientSerializer
+    pagination_class = PageNumberPagination
+    permission_classes = (IsAuthOrReadOnly, )

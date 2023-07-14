@@ -109,7 +109,8 @@ class FollowSerializer(serializers.ModelSerializer):
 
 class ShoppingListSerializer(serializers.ModelSerializer):
     user = serializers.SlugRelatedField(slug_field='username', read_only=True)
-    recipe = RecipeSerializer(many=True, read_only=True)
+    recipe = serializers.SlugRelatedField(
+        slug_field='recipe', many=True, read_only=True)
 
     class Meta:
         model = ShoppingList
@@ -117,30 +118,29 @@ class ShoppingListSerializer(serializers.ModelSerializer):
 
 
 class AddRecipeInShoppingCart(serializers.ModelSerializer):
-    user = serializers.SlugRelatedField(slug_field='username', read_only=True)
-    resipes = RecipeSerializer(many=True, read_only=True)
+    user = serializers.SlugRelatedField(
+        slug_field='username', read_only=True)
+    recipe = serializers.SlugRelatedField(
+        slug_field='title',  queryset=Recipe.objects.all())
+
+    # def validate(self, data):
+    #     cart = ShoppingList.objects.filter(
+    #         user=self.context['request'].user, recipe__title=self.context['view'].kwargs.get('recipe_id')).exists()
+    #     if cart is True:
+    #         raise serializers.ValidationError(
+    #             'Вы уже добавили рецепт!')
+    #     return data
 
     class Meta:
         model = ShoppingList
         fields = ('id', 'user', 'recipe')
 
-    def validate(self, data):
-        user = get_object_or_404(User, user=data['request'].username)
-        favorite_recipe = ShoppingList.objects.filter(
-            user=user, recipe=user).exists()
-        if favorite_recipe is True:
-            raise ValueError('этот рецепт уже добавлен')
-
-    constraints = [
-        models.UniqueConstraint(
-            fields=['user', 'recipe'],
-            name='unique_recipe'
-        ),
-        models.CheckConstraint(
-            check=~models.Q(user=models.F('recipe')),
-            name='prevent_self_recipe',
-        )
-    ]
+    # constraints = [
+    #     models.UniqueConstraint(
+    #         fields=['user', 'recipe'],
+    #         name='unique_user_recipe'
+    #     ),
+    # ]
 
 
 class ListUserSerializer(serializers.ModelSerializer):
