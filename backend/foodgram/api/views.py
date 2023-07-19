@@ -1,30 +1,18 @@
-from rest_framework import viewsets, status, generics, mixins
-from rest_framework.decorators import action
-from rest_framework.exceptions import MethodNotAllowed
+from rest_framework import viewsets, status, mixins
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
-from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.generics import get_object_or_404
-from rest_framework import filters
-from rest_framework.request import Request
 from rest_framework.response import Response
-import base64
-import io
-import csv
-from django.http import FileResponse, HttpResponse
-from reportlab.pdfgen import canvas
-from recipe.models import ShoppingList
-from django.db.models import Sum
 
-from django_filters.rest_framework import DjangoFilterBackend
-from django.conf import settings
-from django.core.mail import send_mail
+
 from django.contrib.auth.models import User
 
+from recipe.models import Recipe, ShoppingList, Follow
 
-from recipe.models import Recipe, ShoppingList, Follow, Ingredient
 from .pagination import CustomPagination
-from .permissions import IsAuthOrReadOnly, IsAdminOrReadOnly
+from .permissions import (IsAuthOrReadOnly,
+                          IsAdminOrReadOnly,
+                          IsNotAuthenticated)
 from .serializers import (RecipeSerializer, TagtSerializer,
                           ListUserSerializer, ShoppingListSerializer,
                           ChangePasswordSerializer, CreateUserSerializers,
@@ -39,7 +27,6 @@ class RecipeViewset(viewsets.ModelViewSet):
     permission_classes = (IsAuthOrReadOnly, )
     filterset_class = RecipeFilter
     pagination_class = CustomPagination
-
 
     def perform_create(self, serializer):
         return serializer.save(author=self.request.user)
@@ -57,7 +44,9 @@ class ListUserViewset(mixins.ListModelMixin, viewsets.GenericViewSet):
     permission_classes = (IsAdminUser, )
 
 
-class ShoppingListViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
+class ShoppingListViewSet(mixins.ListModelMixin,
+                          mixins.RetrieveModelMixin,
+                          viewsets.GenericViewSet):
     serializer_class = ShoppingListSerializer
     permission_classes = (IsAuthenticated, )
 
@@ -65,7 +54,8 @@ class ShoppingListViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, view
         return ShoppingList.objects.filter(user_id=self.request.user.id)
 
 
-class AddRecipeInShoppingCart(mixins.CreateModelMixin, viewsets.GenericViewSet):
+class AddRecipeInShoppingCart(mixins.CreateModelMixin,
+                              viewsets.GenericViewSet):
     serializer_class = AddRecipeInShoppingCart
     permission_classes = (IsAuthenticated, )
 
@@ -95,6 +85,7 @@ class ChangePasswordViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
 
 class CreateUserViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
     serializer_class = CreateUserSerializers
+    permission_classes = (IsNotAuthenticated, )
 
 
 class FollowViewSet(viewsets.ModelViewSet):
@@ -108,7 +99,8 @@ class FollowViewSet(viewsets.ModelViewSet):
         serializer.save(user=self.request.user)
 
 
-class FollowSubscriptionsViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
+class FollowSubscriptionsViewSet(mixins.ListModelMixin,
+                                 viewsets.GenericViewSet):
     serializer_class = FollowSerializer
     permission_classes = (IsAuthenticated, )
 
@@ -120,23 +112,3 @@ class IngridientsViewSet(viewsets.ModelViewSet):
     serializer_class = IngredientSerializer
     pagination_class = PageNumberPagination
     permission_classes = (IsAuthOrReadOnly, )
-
-
-class FileDownloadListAPIView(generics.ListAPIView):
-    permission_classes = (IsAuthenticated, )
-
-    def get(self, request, format=None):
-        shopping_list = ShoppingList.objects.get(user=request.user)
-        recipes = Ingredient.objects.filter(ingredients__recipe=shopping_list)
-        response = HttpResponse(
-            content_type='text/csv',
-            headers={
-                'Content-Disposition': 'attachment; filename="somefilename.csv"'},
-        )
-
-        for recipe in recipes:
-            writer = csv.writer(response)
-            writer.writerow([f'{recipe}'])
-            # writer.writerow(['Second row', 'A', 'B', 'C', '"Testing"', "Here's a quote"])
-
-        return response

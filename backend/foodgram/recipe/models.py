@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.core.validators import MinValueValidator
 
 
 class Ingredient(models.Model):
@@ -13,7 +14,8 @@ class Ingredient(models.Model):
         (GRAM, 'грамм'),
     ]
     title = models.CharField(max_length=50)
-    count = models.PositiveIntegerField()
+    count = models.PositiveIntegerField(validators=[MinValueValidator(
+        1, message='Ошибки в ингредиентах.')])
     unit = models.CharField(choices=UNIT_CHOICES, max_length=50)
 
     def __str__(self):
@@ -56,7 +58,7 @@ class FavoritesRecipe(models.Model):
     user = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name='user')
     recipe = models.ForeignKey(
-        Recipe, related_name='recipes_fovorite', on_delete=models.CASCADE)
+        Recipe, related_name='is_favorited', on_delete=models.CASCADE)
 
     def __str__(self):
         return self.user.username
@@ -104,7 +106,7 @@ class ShoppingList(models.Model):
     user = models.ForeignKey(User, related_name='user_cart',
                              on_delete=models.CASCADE)
     recipe = models.ForeignKey(
-        Recipe, related_name='recipe_cart', on_delete=models.CASCADE)
+        Recipe, related_name='is_in_shopping_cart', on_delete=models.CASCADE)
 
     def __str__(self) -> str:
         return f'{self.user.username} {self.recipe}'

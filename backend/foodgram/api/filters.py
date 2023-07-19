@@ -8,19 +8,12 @@ class RecipeFilter(filter_.FilterSet):
     author = filter_.NumberFilter(
         field_name='author', lookup_expr='exact')
     favorite_recipe = filter_.BooleanFilter(
-        'recipes_fovorite', lookup_expr='exact')
-    shopping_cart = filter_.BooleanFilter('recipe_cart', lookup_expr='exact')
+        'is_favorited', lookup_expr='exact')
+    shopping_cart = filter_.BooleanFilter(
+        'is_in_shopping_cart', lookup_expr='exact')
 
     class Meta:
         model = Recipe
         fields = ('author', 'title',
                   'ingredients', 'tag')
 
-
-# class FavoriteRecipeFilter(filter_.FilterSet):
-#     shopping_cart = filter_.BooleanFilter(
-#         field_name='recipe', lookup_expr='exact')
-
-#     class Meta:
-#         model = FavoritesRecipe
-#         fields = ('recipe', )

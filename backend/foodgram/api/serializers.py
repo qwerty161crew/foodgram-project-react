@@ -2,13 +2,9 @@ import webcolors
 from rest_framework import serializers
 from django.db import models
 from rest_framework.generics import get_object_or_404
-from rest_framework.validators import UniqueValidator
-from django.core.validators import (
-    EmailValidator,
-    MaxLengthValidator,
-    RegexValidator,
-)
-from recipe.models import Recipe, Tag, Ingredient, FavoritesRecipe, Follow, ShoppingList
+from recipe.models import (Recipe, Tag, Ingredient,
+                           FavoritesRecipe,
+                           Follow, ShoppingList)
 from django.contrib.auth.models import User
 
 
@@ -62,7 +58,8 @@ class FavouritesRecipeSerializer(serializers.ModelSerializer):
         model = FavoritesRecipe
 
     def validate(self, data):
-        if FavoritesRecipe.objects.filter(recipe=self.context['user'].username).exists():
+        if FavoritesRecipe.objects.filter(
+                recipe=self.context['user'].username).exists():
             raise serializers.ValidationError('У вас уже есть этот рецепт')
         if FavoritesRecipe.objects.filter(user=self.context['user']):
             raise serializers.ValidationError(
@@ -93,7 +90,7 @@ class FollowSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Follow
-        fields = '__all__'
+        fields = ('author', 'user', 'recipes')
 
         constraints = [
             models.UniqueConstraint(
@@ -105,6 +102,13 @@ class FollowSerializer(serializers.ModelSerializer):
                 name='prevent_self_author',
             )
         ]
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        user = self.context['request'].user
+        recipes = Recipe.objects.filter(author=user)
+        data['recipes'] = recipes
+        return data
 
 
 class ShoppingListSerializer(serializers.ModelSerializer):
@@ -125,7 +129,8 @@ class AddRecipeInShoppingCart(serializers.ModelSerializer):
 
     def validate(self, data):
         cart = ShoppingList.objects.filter(
-            user=self.context['request'].user, recipe__id=self.context['view'].kwargs.get('recipe_id')).exists()
+            user=self.context['request'].user,
+            recipe__id=self.context['view'].kwargs.get('recipe_id')).exists()
         if cart is True:
             raise serializers.ValidationError(
                 'Вы уже добавили рецепт!')
@@ -171,8 +176,8 @@ class ChangePasswordSerializer(serializers.Serializer):
 
 class CreateUserSerializers(serializers.Serializer):
     password = serializers.CharField(required=True)
-    first_name = serializers.CharField()
-    last_name = serializers.CharField()
+    first_name = serializers.CharField(required=True)
+    last_name = serializers.CharField(required=True)
     email = serializers.EmailField(required=True)
     username = serializers.CharField(required=True)
 
