@@ -32,14 +32,15 @@ class Tag(models.Model):
 class Recipe(models.Model):
     author = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name='author')
-    title = models.CharField(max_length=50)
+    title = models.CharField(max_length=50, unique=True)
     image = models.ImageField(
         'Картинка',
         upload_to='posts/',
         blank=True
     )
     description = models.CharField(max_length=1000)
-    ingredients = models.ManyToManyField(Ingredient)
+    ingredients = models.ManyToManyField(
+        Ingredient, related_name='ingredients')
     tag = models.ManyToManyField(Tag, related_name='tag')
     cooking_time = models.PositiveIntegerField()
     pub_date = models.DateTimeField(auto_now_add=True)
@@ -103,15 +104,15 @@ class ShoppingList(models.Model):
     user = models.ForeignKey(User, related_name='user_cart',
                              on_delete=models.CASCADE)
     recipe = models.ForeignKey(
-        Recipe, related_name='recipe', on_delete=models.CASCADE)
+        Recipe, related_name='recipe_cart', on_delete=models.CASCADE)
+
+    def __str__(self) -> str:
+        return f'{self.user.username} {self.recipe}'
 
     class Meta:
         constraints = [
             models.UniqueConstraint(
                 fields=['user', 'recipe'],
                 name='unique_user_recipe'
-            )
+            ),
         ]
-
-    def __str__(self) -> str:
-        return f'{self.user} {self.recipe}'

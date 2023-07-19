@@ -135,12 +135,12 @@ class AddRecipeInShoppingCart(serializers.ModelSerializer):
         model = ShoppingList
         fields = ('id', 'user', 'recipe')
 
-    constraints = [
-        models.UniqueConstraint(
-            fields=['user', 'recipe'],
-            name='unique_user_recipe'
-        ),
-    ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'recipe'],
+                name='unique_user_recipe'
+            ),
+        ]
 
 
 class ListUserSerializer(serializers.ModelSerializer):
