@@ -125,7 +125,7 @@ class AddRecipeInShoppingCart(serializers.ModelSerializer):
     user = serializers.SlugRelatedField(
         slug_field='username', read_only=True)
     recipe = serializers.SlugRelatedField(
-        slug_field='title',  queryset=Recipe.objects.all())
+        slug_field='title', queryset=Recipe.objects.all())
 
     def validate(self, data):
         cart = ShoppingList.objects.filter(
