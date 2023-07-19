@@ -1,6 +1,6 @@
 from django_filters import rest_framework as filter_
 
-from recipe.models import Recipe, FavoritesRecipe
+from recipe.models import Recipe
 
 
 class RecipeFilter(filter_.FilterSet):
@@ -16,4 +16,3 @@ class RecipeFilter(filter_.FilterSet):
         model = Recipe
         fields = ('author', 'title',
                   'ingredients', 'tag')
-
