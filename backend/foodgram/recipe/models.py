@@ -4,22 +4,11 @@ from django.core.validators import MinValueValidator
 
 
 class Ingredient(models.Model):
-    LITER = 'л.'
-    MILLILITER = 'мл.'
-    GRAM = 'гр.'
-    UNIT_CHOICES = [
-        (LITER,
-         'литр'),
-        (MILLILITER, 'милилитр'),
-        (GRAM, 'грамм'),
-    ]
-    title = models.CharField(max_length=50)
-    count = models.PositiveIntegerField(validators=[MinValueValidator(
-        1, message='Ошибки в ингредиентах.')])
-    unit = models.CharField(choices=UNIT_CHOICES, max_length=50)
-
-    def __str__(self):
-        return self.title
+    """
+    Ingredient Model
+    """
+    title = models.CharField(max_length=150, unique=True)
+    measurement_unit = models.CharField(max_length=60)
 
 
 class Tag(models.Model):
@@ -118,3 +107,11 @@ class ShoppingList(models.Model):
                 name='unique_user_recipe'
             ),
         ]
+
+
+class IngridientsRecipe(models.Model):
+    ingridient = models.ForeignKey(Ingredient, on_delete=models.CASCADE)
+    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f'{self.ingridient} {self.recipe}'

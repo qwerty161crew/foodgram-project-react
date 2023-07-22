@@ -20,9 +20,9 @@ class TagAdmin(admin.ModelAdmin):
 
 
 class IngridientAdmin(admin.ModelAdmin):
-    list_display = ('title', 'count', 'unit')
+    list_display = ('title', 'measurement_unit')
     search_fields = ('title', )
-    list_filter = ('unit', )
+    list_filter = ('measurement_unit', )
 
 
 admin.site.register(Recipe, RecipeAdmin)

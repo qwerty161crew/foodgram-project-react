@@ -5,6 +5,8 @@ class IsAuthOrReadOnly(permissions.BasePermission):
     def has_permission(self, request, view,) -> bool:
         if request.method in permissions.SAFE_METHODS:
             return True
+        elif request.user.is_authenticated:
+            return True
         return False
 
 
@@ -29,3 +31,12 @@ class IsNotAuthenticated(permissions.BasePermission):
         if request.user.is_authenticated:
             return False
         return True
+
+
+class IsAuthorOrReadOnly(permissions.BasePermission):
+    def has_object_permission(
+            self, request, view, obj) -> bool:
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        if request.user.username == obj.author:
+            return True

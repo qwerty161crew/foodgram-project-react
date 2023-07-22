@@ -1,11 +1,21 @@
+import base64
 import webcolors
 from rest_framework import serializers
+from django.core.files.base import ContentFile
 from django.db import models
 from rest_framework.generics import get_object_or_404
 from recipe.models import (Recipe, Tag, Ingredient,
                            FavoritesRecipe,
-                           Follow, ShoppingList)
+                           Follow, ShoppingList, IngridientsRecipe)
 from django.contrib.auth.models import User
+
+
+class Base64ImageField(serializers.ImageField):
+    def to_internal_value(self, data):
+        if isinstance(data, str) and data.startswith('data:image'):
+            format, imgstr = data.split(';base64,')
+            ext = format.split('/')[-1]
+            data = ContentFile(base64.b64decode(imgstr), name='temp.' + ext)
 
 
 class Hex2NameColor(serializers.Field):
@@ -22,7 +32,7 @@ class Hex2NameColor(serializers.Field):
 
 class IngredientSerializer(serializers.ModelSerializer):
     class Meta:
-        fields = ('id', 'title', 'count', 'unit')
+        fields = ('id', 'title', 'measurement_unit')
         model = Ingredient
 
 
@@ -39,14 +49,31 @@ class RecipeSerializer(serializers.ModelSerializer):
         slug_field='username',
         read_only=True,
     )
-    ingredients = IngredientSerializer(many=True, read_only=True)
+    ingredients = IngredientSerializer(many=True, required=True)
     tag = TagtSerializer(many=True, read_only=True)
+    image = Base64ImageField(required=False, allow_null=True)
 
     class Meta:
-        fields = ('id', 'author', 'title', 'image', 'description',
-                  'ingredients', 'tag', 'cooking_time', 'pub_date')
-
+        fields = ('__all__')
         model = Recipe
+
+    def create(self, validated_data):
+        # Уберем список достижений из словаря validated_data и сохраним его
+        ingredients = validated_data.pop('ingredients')
+
+        # Создадим нового котика пока без достижений, данных нам достаточно
+        recipe = Recipe.objects.create(**validated_data)
+
+        # Для каждого достижения из списка достижений
+        for ingredient in ingredients:
+            # Создадим новую запись или получим существующий экземпляр из БД
+            current_ingredient, status = Ingredient.objects.get_or_create(
+                **ingredient)
+            # Поместим ссылку на каждое достижение во вспомогательную таблицу
+            # Не забыв указать к какому котику оно относится
+            IngridientsRecipe.objects.create(
+                ingredient=current_ingredient, recipe=recipe)
+        return recipe
 
 
 class FavouritesRecipeSerializer(serializers.ModelSerializer):

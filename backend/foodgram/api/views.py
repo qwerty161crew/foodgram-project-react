@@ -1,18 +1,23 @@
-from rest_framework import viewsets, status, mixins
+import io
+
+from django.http import FileResponse
+from reportlab.pdfgen import canvas
+from rest_framework import viewsets, status, mixins, generics
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
+from django.http import FileResponse, HttpResponse
 
 
 from django.contrib.auth.models import User
 
-from recipe.models import Recipe, ShoppingList, Follow
+from recipe.models import Recipe, ShoppingList, Follow, Ingredient
 
 from .pagination import CustomPagination
 from .permissions import (IsAuthOrReadOnly,
                           IsAdminOrReadOnly,
-                          IsNotAuthenticated)
+                          IsNotAuthenticated, IsAuthorOrReadOnly)
 from .serializers import (RecipeSerializer, TagtSerializer,
                           ListUserSerializer, ShoppingListSerializer,
                           ChangePasswordSerializer, CreateUserSerializers,
@@ -24,7 +29,7 @@ from .filters import RecipeFilter
 class RecipeViewset(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
     serializer_class = RecipeSerializer
-    permission_classes = (IsAuthOrReadOnly, )
+    permission_classes = (IsAuthorOrReadOnly, IsAuthOrReadOnly)
     filterset_class = RecipeFilter
     pagination_class = CustomPagination
 
@@ -112,3 +117,27 @@ class IngridientsViewSet(viewsets.ModelViewSet):
     serializer_class = IngredientSerializer
     pagination_class = PageNumberPagination
     permission_classes = (IsAuthOrReadOnly, )
+
+    permission_classes = (IsAuthenticated, )
+
+
+class FileDownloadListAPIView(generics.ListAPIView):
+    permission_classes = (IsAuthenticated, )
+
+    def get(self, request, format=None):
+        shopping_list = ShoppingList.objects.get(user=request.user)
+        recipes = Ingredient.objects.filter(
+            ingredients__is_in_shopping_cart=shopping_list)
+        buffer = io.BytesIO()
+        for ingredients in recipes:
+            p = canvas.Canvas(buffer)
+
+            p.drawString(
+                50, 50, f"{ingredients.title, ingredients.count, ingredients.unit}"
+            )
+
+            p.showPage()
+            p.save()
+
+            buffer.seek(0)
+        return FileResponse(buffer, as_attachment=True, filename="hello.pdf")
