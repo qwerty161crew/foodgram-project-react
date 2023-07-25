@@ -18,8 +18,6 @@ router.register(r'users/(?P<user_id>\d+)/subscriptions',
 router.register(r'ingredients/(?P<ingredient_id>\d+)',
                 views.IngridientsViewSet, basename='ingredient')
 router.register(r'tags/(?P<tag_id>\d+)', views.TagViewset, basename='tag')
-router.register('create/user', views.CreateUserViewSet,
-                basename='create_user')
 
 
 app_name = 'api'

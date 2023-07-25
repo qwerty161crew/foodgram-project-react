@@ -1,6 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
-from django.core.validators import MinValueValidator
+from django.core.validators import MinValueValidator, RegexValidator
 
 
 class Ingredient(models.Model):
@@ -13,7 +13,17 @@ class Ingredient(models.Model):
 
 class Tag(models.Model):
     title = models.CharField(max_length=50, unique=True)
-    color = models.CharField(max_length=50)
+    color = models.CharField(
+        'Цветовой HEX-код',
+        unique=True,
+        max_length=7,
+        validators=[
+            RegexValidator(
+                regex='^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$',
+                message='Введенное значение не является цветом в формате HEX!'
+            )
+        ]
+    )
     slug = models.SlugField(max_length=50, unique=True)
 
     def __str__(self):
@@ -29,7 +39,7 @@ class Recipe(models.Model):
         upload_to='posts/',
         blank=True
     )
-    description = models.CharField(max_length=1000)
+    text = models.CharField(max_length=1000)
     ingredients = models.ManyToManyField(
         Ingredient, related_name='ingredients')
     tag = models.ManyToManyField(Tag, related_name='tag')
@@ -112,6 +122,7 @@ class ShoppingList(models.Model):
 class IngridientsRecipe(models.Model):
     ingridient = models.ForeignKey(Ingredient, on_delete=models.CASCADE)
     recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE)
+    amount = models.PositiveSmallIntegerField()
 
     def __str__(self):
         return f'{self.ingridient} {self.recipe}'

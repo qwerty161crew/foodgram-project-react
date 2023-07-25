@@ -8,7 +8,7 @@ from recipe.models import (Recipe, Ingredient,
 
 
 class RecipeAdmin(admin.ModelAdmin):
-    list_display = ('title', 'description', 'cooking_time', 'author', 'image')
+    list_display = ('title', 'text', 'cooking_time', 'author', 'image')
     search_fields = ('title',)
     list_filter = ('tag', 'ingredients', 'pub_date')
 

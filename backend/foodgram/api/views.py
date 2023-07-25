@@ -1,5 +1,6 @@
 import io
 
+from djoser.views import UserViewSet
 from django.http import FileResponse
 from reportlab.pdfgen import canvas
 from rest_framework import viewsets, status, mixins, generics
@@ -8,19 +9,19 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 from django.http import FileResponse, HttpResponse
+from rest_framework.pagination import LimitOffsetPagination
 
 
 from django.contrib.auth.models import User
 
 from recipe.models import Recipe, ShoppingList, Follow, Ingredient
 
-from .pagination import CustomPagination
 from .permissions import (IsAuthOrReadOnly,
                           IsAdminOrReadOnly,
                           IsNotAuthenticated, IsAuthorOrReadOnly)
 from .serializers import (RecipeSerializer, TagtSerializer,
                           ListUserSerializer, ShoppingListSerializer,
-                          ChangePasswordSerializer, CreateUserSerializers,
+                          ChangePasswordSerializer, CustomUserSerializer,
                           AddRecipeInShoppingCart, FollowSerializer,
                           IngredientSerializer)
 from .filters import RecipeFilter
@@ -31,7 +32,7 @@ class RecipeViewset(viewsets.ModelViewSet):
     serializer_class = RecipeSerializer
     permission_classes = (IsAuthorOrReadOnly, IsAuthOrReadOnly)
     filterset_class = RecipeFilter
-    pagination_class = CustomPagination
+    pagination_class = LimitOffsetPagination
 
     def perform_create(self, serializer):
         return serializer.save(author=self.request.user)
@@ -88,11 +89,6 @@ class ChangePasswordViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
         user.save()
 
 
-class CreateUserViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
-    serializer_class = CreateUserSerializers
-    permission_classes = (IsNotAuthenticated, )
-
-
 class FollowViewSet(viewsets.ModelViewSet):
     serializer_class = FollowSerializer
     permission_classes = (IsAuthenticated, )
@@ -111,6 +107,9 @@ class FollowSubscriptionsViewSet(mixins.ListModelMixin,
 
     def get_queryset(self):
         return Follow.objects.filter(user=self.request.user)
+    
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
 
 
 class IngridientsViewSet(viewsets.ModelViewSet):
@@ -141,3 +140,7 @@ class FileDownloadListAPIView(generics.ListAPIView):
 
             buffer.seek(0)
         return FileResponse(buffer, as_attachment=True, filename="hello.pdf")
+
+
+class CustomUserViewSet(UserViewSet):
+    serializer_class = CustomUserSerializer

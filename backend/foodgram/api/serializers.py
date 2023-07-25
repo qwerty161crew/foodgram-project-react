@@ -1,6 +1,7 @@
 import base64
 import webcolors
 from rest_framework import serializers
+from djoser.serializers import UserCreateSerializer
 from django.core.files.base import ContentFile
 from django.db import models
 from rest_framework.generics import get_object_or_404
@@ -18,6 +19,12 @@ class Base64ImageField(serializers.ImageField):
             data = ContentFile(base64.b64decode(imgstr), name='temp.' + ext)
 
 
+class AmountSerializers(serializers.ModelSerializer):
+    class Meta:
+        model = IngridientsRecipe
+        fields = ('amount', )
+
+
 class Hex2NameColor(serializers.Field):
     def to_representation(self, value):
         return value
@@ -31,8 +38,9 @@ class Hex2NameColor(serializers.Field):
 
 
 class IngredientSerializer(serializers.ModelSerializer):
+
     class Meta:
-        fields = ('id', 'title', 'measurement_unit')
+        fields = ('id', 'title', 'measurement_unit', 'amount')
         model = Ingredient
 
 
@@ -49,17 +57,26 @@ class RecipeSerializer(serializers.ModelSerializer):
         slug_field='username',
         read_only=True,
     )
-    ingredients = IngredientSerializer(many=True, required=True)
-    tag = TagtSerializer(many=True, read_only=True)
+    ingredients = IngredientSerializer(required=True)
     image = Base64ImageField(required=False, allow_null=True)
+    amounts = AmountSerializers(required=True)
 
     class Meta:
         fields = ('__all__')
         model = Recipe
 
+    def validate(self, data):
+        if data['amount'] <= 0:
+            raise ValueError(
+                'убедитесь что количество ингредиентов больше или равно 1')
+        if data['ingredients'] is None:
+            raise ValueError('должен быть хотябы один ингредиент')
+        return data
+
     def create(self, validated_data):
         # Уберем список достижений из словаря validated_data и сохраним его
         ingredients = validated_data.pop('ingredients')
+        amounts = validated_data.pop('amounts')
 
         # Создадим нового котика пока без достижений, данных нам достаточно
         recipe = Recipe.objects.create(**validated_data)
@@ -71,8 +88,11 @@ class RecipeSerializer(serializers.ModelSerializer):
                 **ingredient)
             # Поместим ссылку на каждое достижение во вспомогательную таблицу
             # Не забыв указать к какому котику оно относится
-            IngridientsRecipe.objects.create(
-                ingredient=current_ingredient, recipe=recipe)
+            for amount in amounts:
+                IngridientsRecipe.objects.create(
+                    ingredient=current_ingredient,
+                    recipe=recipe,
+                    amount=amount)
         return recipe
 
 
@@ -201,14 +221,11 @@ class ChangePasswordSerializer(serializers.Serializer):
     new_password = serializers.CharField(required=True)
 
 
-class CreateUserSerializers(serializers.Serializer):
-    password = serializers.CharField(required=True)
+class CustomUserSerializer(UserCreateSerializer):
     first_name = serializers.CharField(required=True)
     last_name = serializers.CharField(required=True)
-    email = serializers.EmailField(required=True)
-    username = serializers.CharField(required=True)
 
     class Meta:
         model = User
-        fields = ('username', 'email', 'first_name',
-                  'last_name')
+        fields = ('email', 'id', 'username',
+                  'first_name', 'last_name', 'password')
