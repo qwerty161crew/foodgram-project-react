@@ -18,12 +18,12 @@ from recipe.models import Recipe, ShoppingList, Follow, Ingredient
 
 from .permissions import (IsAuthOrReadOnly,
                           IsAdminOrReadOnly,
-                          IsNotAuthenticated, IsAuthorOrReadOnly)
+                          IsNotAuthenticated, IsAuthorOrReadOnly, IsAdminOrReadOnly)
 from .serializers import (RecipeSerializer, TagtSerializer,
                           ListUserSerializer, ShoppingListSerializer,
                           ChangePasswordSerializer, CustomUserSerializer,
                           AddRecipeInShoppingCart, FollowSerializer,
-                          IngredientSerializer)
+                          IngredientInRecipeSerializer)
 from .filters import RecipeFilter
 
 
@@ -113,11 +113,9 @@ class FollowSubscriptionsViewSet(mixins.ListModelMixin,
 
 
 class IngridientsViewSet(viewsets.ModelViewSet):
-    serializer_class = IngredientSerializer
+    serializer_class = IngredientInRecipeSerializer
     pagination_class = PageNumberPagination
-    permission_classes = (IsAuthOrReadOnly, )
-
-    permission_classes = (IsAuthenticated, )
+    permission_classes = (IsAdminOrReadOnly, )
 
 
 class FileDownloadListAPIView(generics.ListAPIView):

@@ -40,3 +40,12 @@ class IsAuthorOrReadOnly(permissions.BasePermission):
             return True
         if request.user.username == obj.author:
             return True
+        
+class IsAdminOrReadOnly(permissions.BasePermission):
+    def has_permission(self, request, view):
+        if permissions.SAFE_METHODS:
+            return True
+        if request.user.is_superuser:
+            return True
+        return False
+        
