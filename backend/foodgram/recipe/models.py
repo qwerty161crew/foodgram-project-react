@@ -128,4 +128,4 @@ class IngredientsRecipe(models.Model):
     amount = models.PositiveSmallIntegerField()
 
     def __str__(self):
-        return f'{self.ingridient} {self.recipe}'
+        return f'{self.ingredient} {self.recipe}'

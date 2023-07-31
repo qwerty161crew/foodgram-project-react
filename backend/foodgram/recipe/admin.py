@@ -3,7 +3,8 @@ from recipe.models import (Recipe, Ingredient,
                            Tag,
                            FavoritesRecipe,
                            ShoppingList,
-                           Follow
+                           Follow,
+                           IngredientsRecipe
                            )
 
 
@@ -31,3 +32,4 @@ admin.site.register(Ingredient, IngridientAdmin)
 admin.site.register(FavoritesRecipe)
 admin.site.register(ShoppingList)
 admin.site.register(Follow)
+admin.site.register(IngredientsRecipe)

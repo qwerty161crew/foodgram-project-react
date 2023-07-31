@@ -29,7 +29,9 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'djoser',
     'wkhtmltopdf',
+    'import_export',
 ]
+
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -110,8 +112,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
 STATIC_URL = '/static/'
-
-STATIC_ROOT = BASE_DIR / 'static'
+STATIC_ROOT = BASE_DIR / 'collected_static'
 
 MEDIA_URL = '/media/'
 
@@ -178,15 +179,15 @@ SIMPLE_JWT = {
 }
 
 
-
 CORS_URLS_REGEX = r'^/api/.*$'
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:8000',
 ]
 
 DJOSER = {
+    'LOGIN_FIELD': 'email',
     'SERIALIZERS': {
-         'user_create': 'api.serializers.CustomUserSerializer'
+        'user_create': 'api.serializers.CustomUserSerializer'
     }
 
 }

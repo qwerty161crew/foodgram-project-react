@@ -23,16 +23,20 @@ from .serializers import (RecipeSerializer, TagtSerializer,
                           ListUserSerializer, ShoppingListSerializer,
                           ChangePasswordSerializer, CustomUserSerializer,
                           AddRecipeInShoppingCart, FollowSerializer,
-                          IngredientInRecipeSerializer)
+                          IngredientsInRecipeSerializers, RecipeListSerializers)
 from .filters import RecipeFilter
 
 
 class RecipeViewset(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
-    serializer_class = RecipeSerializer
     permission_classes = (IsAuthorOrReadOnly, IsAuthOrReadOnly)
     filterset_class = RecipeFilter
     pagination_class = LimitOffsetPagination
+
+    def get_serializer_class(self):
+        if self.action in ('list', 'retrieve'):
+            return RecipeListSerializers
+        return RecipeSerializer
 
     def perform_create(self, serializer):
         return serializer.save(author=self.request.user)
@@ -89,15 +93,31 @@ class ChangePasswordViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
         user.save()
 
 
-class FollowViewSet(viewsets.ModelViewSet):
+class FollowViewSet(mixins.CreateModelMixin,
+                    mixins.DestroyModelMixin,
+                    viewsets.GenericViewSet):
     serializer_class = FollowSerializer
     permission_classes = (IsAuthenticated, )
+    # lookup_field = 'pk'
+
+    # def get_user(self):
+    #     return get_object_or_404(User, user=self.get_object('id'))
+
+    def destroy(self, request, pk=None):
+        author_id = self.request.parser_context['kwargs'].get('id')
+        author = get_object_or_404(User, id=author_id)
+        print(author)
+        self.serializer.delete(user=self.request.user, author=author)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     def get_queryset(self):
         return self.request.user.follower.all()
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        author_id = self.request.parser_context['kwargs'].get('id')
+        author = get_object_or_404(User, id=author_id)
+        print(author)
+        serializer.save(user=self.request.user, author=author)
 
 
 class FollowSubscriptionsViewSet(mixins.ListModelMixin,
@@ -107,13 +127,14 @@ class FollowSubscriptionsViewSet(mixins.ListModelMixin,
 
     def get_queryset(self):
         return Follow.objects.filter(user=self.request.user)
-    
+
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
 
 class IngridientsViewSet(viewsets.ModelViewSet):
-    serializer_class = IngredientInRecipeSerializer
+    queryset = Ingredient.objects.all()
+    serializer_class = IngredientsInRecipeSerializers
     pagination_class = PageNumberPagination
     permission_classes = (IsAdminOrReadOnly, )
 
@@ -141,4 +162,11 @@ class FileDownloadListAPIView(generics.ListAPIView):
 
 
 class CustomUserViewSet(UserViewSet):
-    serializer_class = CustomUserSerializer
+
+    # def get_permissions(self):
+    #     return super().get_permissions()
+
+    def get_serializer_class(self):
+        if self.action in ('list', 'retrieve'):
+            return ListUserSerializer
+        return CustomUserSerializer
