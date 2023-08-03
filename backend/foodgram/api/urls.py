@@ -19,7 +19,7 @@ router.register(r'recipes/(?P<recipe_id>\d+)/shopping_cart',
 router.register(r'ingredients',
                 views.IngridientsViewSet, basename='ingredient')
 router.register(r'tags/(?P<tag_id>\d+)', views.TagViewset, basename='tag')
-print(router)
+
 
 
 app_name = 'api'

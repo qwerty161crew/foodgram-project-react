@@ -1,6 +1,7 @@
 import io
 
-from djoser.views import UserViewSet
+from djoser.views import UserViewSet, TokenCreateView
+from djoser.serializers import TokenCreateSerializer
 from django.http import FileResponse
 from reportlab.pdfgen import canvas
 from rest_framework import viewsets, status, mixins, generics
@@ -143,7 +144,7 @@ class FileDownloadListAPIView(generics.ListAPIView):
     permission_classes = (IsAuthenticated, )
 
     def get(self, request, format=None):
-        shopping_list = ShoppingList.objects.get(user=request.user)
+        shopping_list = ShoppingList.objects.filter(user=request.user)
         recipes = Ingredient.objects.filter(
             ingredients__is_in_shopping_cart=shopping_list)
         buffer = io.BytesIO()
@@ -151,7 +152,7 @@ class FileDownloadListAPIView(generics.ListAPIView):
             p = canvas.Canvas(buffer)
 
             p.drawString(
-                50, 50, f"{ingredients.title, ingredients.count, ingredients.unit}"
+                50, 50, f"{ingredients.title}, {ingredients.measurement_unit}"
             )
 
             p.showPage()
@@ -170,3 +171,14 @@ class CustomUserViewSet(UserViewSet):
         if self.action in ('list', 'retrieve'):
             return ListUserSerializer
         return CustomUserSerializer
+
+
+class CreateTokenViewSet(TokenCreateView):
+    serializer_class = TokenCreateSerializer
+
+    def create(self):
+        serializer = self.get_serializer(data=self.request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(status=status.HTTP_201_CREATED, headers=headers)

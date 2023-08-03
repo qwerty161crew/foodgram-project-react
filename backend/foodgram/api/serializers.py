@@ -1,7 +1,7 @@
 import base64
 import webcolors
 from rest_framework import serializers
-from djoser.serializers import UserCreateSerializer
+from djoser.serializers import UserCreateSerializer, TokenCreateSerializer
 from django.core.files.base import ContentFile
 from django.db import models, transaction
 from rest_framework.generics import get_object_or_404
@@ -9,6 +9,7 @@ from recipe.models import (Recipe, Tag, Ingredient,
                            FavoritesRecipe,
                            Follow, ShoppingList, IngredientsRecipe)
 from django.contrib.auth.models import User
+
 
 
 class Base64ImageField(serializers.ImageField):
@@ -217,6 +218,7 @@ class ChangePasswordSerializer(serializers.Serializer):
 class CustomUserSerializer(UserCreateSerializer):
     first_name = serializers.CharField(required=True)
     last_name = serializers.CharField(required=True)
+    email = serializers.CharField(required=True)
 
     class Meta:
         model = User
@@ -226,7 +228,8 @@ class CustomUserSerializer(UserCreateSerializer):
     def validate(self, data):
         print(data)
         if User.objects.filter(email=data['email']).exists():
-            raise serializers.ValidationError('Эта почта уже используется другим пользователем')
+            raise serializers.ValidationError(
+                'Эта почта уже используется другим пользователем')
         return data
 
 

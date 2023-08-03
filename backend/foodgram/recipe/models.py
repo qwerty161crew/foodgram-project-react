@@ -10,6 +10,9 @@ class Ingredient(models.Model):
     title = models.CharField(max_length=150, unique=True)
     measurement_unit = models.CharField(max_length=60)
 
+    def __str__(self):
+        return self.title+" : "+self.measurement_unit
+
 
 class Tag(models.Model):
     title = models.CharField(max_length=50, unique=True)
@@ -104,19 +107,19 @@ class Follow(models.Model):
 class ShoppingList(models.Model):
     user = models.ForeignKey(User, related_name='user_cart',
                              on_delete=models.CASCADE)
-    recipe = models.ForeignKey(
-        Recipe, related_name='is_in_shopping_cart', on_delete=models.CASCADE)
+    recipe = models.ManyToManyField(
+        Recipe, related_name='is_in_shopping_cart')
 
     def __str__(self) -> str:
         return f'{self.user.username} {self.recipe}'
 
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(
-                fields=['user', 'recipe'],
-                name='unique_user_recipe'
-            ),
-        ]
+    # class Meta:
+    #     constraints = [
+    #         models.UniqueConstraint(
+    #             fields=['user', 'recipe'],
+    #             name='unique_user_recipe'
+    #         ),
+    #     ]
 
 
 class IngredientsRecipe(models.Model):
