@@ -43,8 +43,6 @@ class Recipe(models.Model):
         blank=True
     )
     text = models.CharField(max_length=1000)
-    ingredients = models.ManyToManyField(
-        Ingredient, related_name='ingredients')  # todo удалить, если не понадобится
     tags = models.ManyToManyField(Tag, related_name='recipes')
     cooking_time = models.PositiveIntegerField()
     pub_date = models.DateTimeField(auto_now_add=True)
@@ -107,19 +105,19 @@ class Follow(models.Model):
 class ShoppingList(models.Model):
     user = models.ForeignKey(User, related_name='user_cart',
                              on_delete=models.CASCADE)
-    recipe = models.ManyToManyField(
-        Recipe, related_name='is_in_shopping_cart')
+    recipe = models.ForeignKey(
+        Recipe, related_name='is_in_shopping_cart', on_delete=models.CASCADE)
 
     def __str__(self) -> str:
         return f'{self.user.username} {self.recipe}'
 
-    # class Meta:
-    #     constraints = [
-    #         models.UniqueConstraint(
-    #             fields=['user', 'recipe'],
-    #             name='unique_user_recipe'
-    #         ),
-    #     ]
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'recipe'],
+                name='unique_user_recipe'
+            ),
+        ]
 
 
 class IngredientsRecipe(models.Model):

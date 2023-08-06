@@ -11,15 +11,15 @@ from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 from django.http import FileResponse, HttpResponse
 from rest_framework.pagination import LimitOffsetPagination
-
+from django.db.models import Sum
 
 from django.contrib.auth.models import User
 
-from recipe.models import Recipe, ShoppingList, Follow, Ingredient
+from recipe.models import Recipe, ShoppingList, Follow, Ingredient, IngredientsRecipe, Tag
 
 from .permissions import (IsAuthOrReadOnly,
                           IsAdminOrReadOnly,
-                          IsNotAuthenticated, IsAuthorOrReadOnly, IsAdminOrReadOnly)
+                          IsNotAuthenticated, IsAuthorOrReadOnly)
 from .serializers import (RecipeSerializer, TagtSerializer,
                           ListUserSerializer, ShoppingListSerializer,
                           ChangePasswordSerializer, CustomUserSerializer,
@@ -44,8 +44,13 @@ class RecipeViewset(viewsets.ModelViewSet):
 
 
 class TagViewset(viewsets.ModelViewSet):
+    queryset = Tag.objects.all()
     serializer_class = TagtSerializer
-    permission_classes = IsAdminOrReadOnly
+    permission_classes = (IsAdminOrReadOnly, )
+
+    def get_object(self):
+        queryset = get_object_or_404(Tag, id=self.kwargs.get('pk'))
+        return queryset
 
 
 class ListUserViewset(mixins.ListModelMixin, viewsets.GenericViewSet):
@@ -144,22 +149,26 @@ class FileDownloadListAPIView(generics.ListAPIView):
     permission_classes = (IsAuthenticated, )
 
     def get(self, request, format=None):
-        shopping_list = ShoppingList.objects.filter(user=request.user)
-        recipes = Ingredient.objects.filter(
-            ingredients__is_in_shopping_cart=shopping_list)
+        shopping_lists = ShoppingList.objects.filter(user=request.user)
+        recepies = Recipe.objects.filter(
+            is_in_shopping_cart__in=shopping_lists)
+        ingredient_receipes = IngredientsRecipe.objects.filter(
+            recipe__in=recepies
+        ).values('ingredient').annotate(total_amount=Sum('amount'))
+
         buffer = io.BytesIO()
-        for ingredients in recipes:
+        for ingredient in ingredient_receipes:
             p = canvas.Canvas(buffer)
 
             p.drawString(
-                50, 50, f"{ingredients.title}, {ingredients.measurement_unit}"
+                50, 50, f"{ingredient}"
             )
 
             p.showPage()
             p.save()
 
             buffer.seek(0)
-        return FileResponse(buffer, as_attachment=True, filename="hello.pdf")
+        return FileResponse(buffer, as_attachment=True, filename="ingredients.pdf")
 
 
 class CustomUserViewSet(UserViewSet):
@@ -171,14 +180,3 @@ class CustomUserViewSet(UserViewSet):
         if self.action in ('list', 'retrieve'):
             return ListUserSerializer
         return CustomUserSerializer
-
-
-class CreateTokenViewSet(TokenCreateView):
-    serializer_class = TokenCreateSerializer
-
-    def create(self):
-        serializer = self.get_serializer(data=self.request.data)
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
-        headers = self.get_success_headers(serializer.data)
-        return Response(status=status.HTTP_201_CREATED, headers=headers)

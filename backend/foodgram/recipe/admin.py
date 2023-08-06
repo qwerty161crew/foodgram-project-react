@@ -11,7 +11,7 @@ from recipe.models import (Recipe, Ingredient,
 class RecipeAdmin(admin.ModelAdmin):
     list_display = ('name', 'text', 'cooking_time', 'author', 'image')
     search_fields = ('title',)
-    list_filter = ('tags', 'ingredients', 'pub_date')
+    list_filter = ('tags', 'pub_date')
 
 
 class TagAdmin(admin.ModelAdmin):

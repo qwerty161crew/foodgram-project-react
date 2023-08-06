@@ -18,8 +18,7 @@ router.register(r'recipes/(?P<recipe_id>\d+)/shopping_cart',
 
 router.register(r'ingredients',
                 views.IngridientsViewSet, basename='ingredient')
-router.register(r'tags/(?P<tag_id>\d+)', views.TagViewset, basename='tag')
-
+router.register('tags', views.TagViewset, basename='tag')
 
 
 app_name = 'api'
@@ -28,6 +27,6 @@ app_name = 'api'
 urlpatterns = [
     path('', include((router.urls, 'api'))),
     path('download/', FileDownloadListAPIView.as_view(), name='donwload'),
-    path('auth/', include('djoser.urls')),          # new
+    path('users/', include('djoser.urls')),          # new
     re_path(r'^auth/', include('djoser.urls.authtoken')),
 ]

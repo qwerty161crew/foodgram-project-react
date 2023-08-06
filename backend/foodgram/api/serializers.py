@@ -11,7 +11,6 @@ from recipe.models import (Recipe, Tag, Ingredient,
 from django.contrib.auth.models import User
 
 
-
 class Base64ImageField(serializers.ImageField):
     def to_internal_value(self, data):
         if isinstance(data, str) and data.startswith('data:image'):
@@ -218,7 +217,7 @@ class ChangePasswordSerializer(serializers.Serializer):
 class CustomUserSerializer(UserCreateSerializer):
     first_name = serializers.CharField(required=True)
     last_name = serializers.CharField(required=True)
-    email = serializers.CharField(required=True)
+    email = serializers.EmailField(required=True)
 
     class Meta:
         model = User
