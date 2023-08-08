@@ -3,10 +3,12 @@ from rest_framework import permissions
 
 class IsAuthOrReadOnly(permissions.BasePermission):
     def has_permission(self, request, view,) -> bool:
-        return bool(
+        val = bool(
             request.method in permissions.SAFE_METHODS or
             request.user and request.user.is_staff
         )
+        print(val)
+        return val
 
 
 class IsAdminOrReadOnly(permissions.BasePermission):
@@ -37,5 +39,7 @@ class IsAuthorOrReadOnly(permissions.BasePermission):
             self, request, view, obj) -> bool:
         if request.method in permissions.SAFE_METHODS:
             return True
-        if request.user.username == obj.author:
+        if request.user == obj.author:
             return True
+        print('False')
+        return False

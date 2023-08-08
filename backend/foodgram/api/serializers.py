@@ -61,8 +61,10 @@ class RecipeSerializer(serializers.ModelSerializer):
         read_only=True,
     )
     ingredients = IngredientInRecipeSerializer(
-        many=True, required=True)
+        many=True, required=True, source='ingredients_in_recipe')
     image = Base64ImageField(required=False, allow_null=True)
+    tags = serializers.PrimaryKeyRelatedField(
+        many=True, queryset=Tag.objects.all())
 
     class Meta:
         fields = ('__all__')
@@ -70,23 +72,53 @@ class RecipeSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         result = super().validate(data)
-        if not data['ingredients']:
+        if not data['ingredients_in_recipe']:
             raise ValueError('должен быть хотябы один ингредиент')
         return result
 
     @transaction.atomic
     def create(self, validated_data):
-        ingredients = validated_data.pop('ingredients')
+        ingredients = validated_data.pop('ingredients_in_recipe')
         tags = validated_data.pop('tags')
-        print(validated_data)
         recipe = Recipe.objects.create(**validated_data)
         for ingredient in ingredients:
-            print(ingredient)
             IngredientsRecipe.objects.create(
                 ingredient_id=ingredient['id'],
                 recipe_id=recipe.id,
-                amount=ingredient['amount'])
+                amount=ingredient['amount']).save()
+        recipe.tags.set(tags)
         return recipe
+
+    @transaction.atomic
+    def update(self, instance, validated_data):
+
+        ingredients = validated_data.pop('ingredients_in_recipe')
+        tags = validated_data.pop('tags')
+        instance.ingredients_in_recipe.all().delete()
+        for ingredient in ingredients:
+            IngredientsRecipe.objects.create(
+                ingredient_id=ingredient['id'],
+                recipe_id=instance.id,
+                amount=ingredient['amount']).save()
+        instance.tags.set(tags)
+        instance = super().update(instance, validated_data)
+        return instance
+
+    def to_representation(self, instance):
+        result = []
+        data = super().to_representation(instance)
+        ingredients = IngredientsRecipe.objects.filter(recipe=instance)
+        for ingredient_in_recipe in ingredients:
+            entry = {
+                'id': ingredient_in_recipe.ingredient.id,
+                'amount': ingredient_in_recipe.amount,
+                'measurement_unit': ingredient_in_recipe.ingredient.measurement_unit,
+                'name': ingredient_in_recipe.ingredient.title
+            }
+            result.append(entry)
+
+        data['ingredients'] = result
+        return data
 
 
 class FavouritesRecipeSerializer(serializers.ModelSerializer):
@@ -232,23 +264,13 @@ class CustomUserSerializer(UserCreateSerializer):
         return data
 
 
-class IngredientsInRecipeSerializers(serializers.ModelSerializer):
+class IngredientsSerializers(serializers.ModelSerializer):
     class Meta:
         model = Ingredient
         fields = ('__all__')
 
 
-class RecipeListSerializers(serializers.ModelSerializer):
-    tags = TagtSerializer(many=True, read_only=True)
-    author = serializers.SlugRelatedField(
-        slug_field='username', read_only=True)
-    ingredients = IngredientsInRecipeSerializers(many=True, read_only=True)
-    image = Base64ImageField(required=False, allow_null=True)
-
-    class Meta:
-        model = Recipe
-        fields = ('id', 'tags', 'author', 'ingredients', 'name',
-                  'text', 'image', 'cooking_time')
+class RecipeListSerializers(RecipeSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)

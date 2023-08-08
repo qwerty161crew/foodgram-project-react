@@ -1,7 +1,7 @@
 from . import views
 from django.urls import path, include, re_path
 from rest_framework.routers import DefaultRouter
-from .views import FileDownloadListAPIView
+from foodgram.utils import FileDownloadListAPIView
 
 
 router = DefaultRouter()

@@ -1,15 +1,13 @@
 import io
 
-from djoser.views import UserViewSet, TokenCreateView
-from djoser.serializers import TokenCreateSerializer
-from django.http import FileResponse
-from reportlab.pdfgen import canvas
-from rest_framework import viewsets, status, mixins, generics
+from djoser.views import UserViewSet
+
+from rest_framework import viewsets, status, mixins
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
-from django.http import FileResponse, HttpResponse
+from django.http import FileResponse
 from rest_framework.pagination import LimitOffsetPagination
 from django.db.models import Sum
 
@@ -19,12 +17,12 @@ from recipe.models import Recipe, ShoppingList, Follow, Ingredient, IngredientsR
 
 from .permissions import (IsAuthOrReadOnly,
                           IsAdminOrReadOnly,
-                          IsNotAuthenticated, IsAuthorOrReadOnly)
+                          IsAuthorOrReadOnly)
 from .serializers import (RecipeSerializer, TagtSerializer,
                           ListUserSerializer, ShoppingListSerializer,
                           ChangePasswordSerializer, CustomUserSerializer,
                           AddRecipeInShoppingCart, FollowSerializer,
-                          IngredientsInRecipeSerializers, RecipeListSerializers)
+                          IngredientsSerializers, RecipeListSerializers)
 from .filters import RecipeFilter
 
 
@@ -122,7 +120,6 @@ class FollowViewSet(mixins.CreateModelMixin,
     def perform_create(self, serializer):
         author_id = self.request.parser_context['kwargs'].get('id')
         author = get_object_or_404(User, id=author_id)
-        print(author)
         serializer.save(user=self.request.user, author=author)
 
 
@@ -140,35 +137,9 @@ class FollowSubscriptionsViewSet(mixins.ListModelMixin,
 
 class IngridientsViewSet(viewsets.ModelViewSet):
     queryset = Ingredient.objects.all()
-    serializer_class = IngredientsInRecipeSerializers
+    serializer_class = IngredientsSerializers
     pagination_class = PageNumberPagination
     permission_classes = (IsAdminOrReadOnly, )
-
-
-class FileDownloadListAPIView(generics.ListAPIView):
-    permission_classes = (IsAuthenticated, )
-
-    def get(self, request, format=None):
-        shopping_lists = ShoppingList.objects.filter(user=request.user)
-        recepies = Recipe.objects.filter(
-            is_in_shopping_cart__in=shopping_lists)
-        ingredient_receipes = IngredientsRecipe.objects.filter(
-            recipe__in=recepies
-        ).values('ingredient').annotate(total_amount=Sum('amount'))
-
-        buffer = io.BytesIO()
-        for ingredient in ingredient_receipes:
-            p = canvas.Canvas(buffer)
-
-            p.drawString(
-                50, 50, f"{ingredient}"
-            )
-
-            p.showPage()
-            p.save()
-
-            buffer.seek(0)
-        return FileResponse(buffer, as_attachment=True, filename="ingredients.pdf")
 
 
 class CustomUserViewSet(UserViewSet):
