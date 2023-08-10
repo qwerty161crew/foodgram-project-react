@@ -185,9 +185,18 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 DJOSER = {
+    'HIDE_USERS': False,
     'LOGIN_FIELD': 'email',
-    'SERIALIZERS': {
-        'user_create': 'api.serializers.CustomUserSerializer'
-    },
+    'PERMISSIONS': {
 
+        'user': ['rest_framework.permissions.AllowAny'],
+        'user_list': ['rest_framework.permissions.AllowAny'],
+
+    },
+    'SERIALIZERS': {
+        'user_create': 'api.serializers.CustomUserSerializer',
+        'user': 'api.serializers.CustomUserSerializer'
+    },
+    'SET_PASSWORD_RETYPE': True,
+    'PASSWORD_RESET_CONFIRM_URL': '/api/users/set_password{uid}/{token}',
 }

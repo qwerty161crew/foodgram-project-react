@@ -7,11 +7,11 @@ class Ingredient(models.Model):
     """
     Ingredient Model
     """
-    title = models.CharField(max_length=150, unique=True)
+    name = models.CharField(max_length=150, unique=True)
     measurement_unit = models.CharField(max_length=60)
 
     def __str__(self):
-        return self.title+" : "+self.measurement_unit
+        return self.name+" : "+self.measurement_unit
 
 
 class Tag(models.Model):

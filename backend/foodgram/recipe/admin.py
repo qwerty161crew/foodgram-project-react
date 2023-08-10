@@ -10,7 +10,7 @@ from recipe.models import (Recipe, Ingredient,
 
 class RecipeAdmin(admin.ModelAdmin):
     list_display = ('name', 'text', 'cooking_time', 'author', 'image')
-    search_fields = ('title',)
+    search_fields = ('name',)
     list_filter = ('tags', 'pub_date')
 
 
@@ -21,8 +21,8 @@ class TagAdmin(admin.ModelAdmin):
 
 
 class IngridientAdmin(admin.ModelAdmin):
-    list_display = ('title', 'measurement_unit')
-    search_fields = ('title', )
+    list_display = ('name', 'measurement_unit')
+    search_fields = ('name', )
     list_filter = ('measurement_unit', )
 
 

@@ -62,7 +62,7 @@ class RecipeSerializer(serializers.ModelSerializer):
     )
     ingredients = IngredientInRecipeSerializer(
         many=True, required=True, source='ingredients_in_recipe')
-    image = Base64ImageField(required=False, allow_null=True)
+    image = Base64ImageField(required=True, allow_null=True)
     tags = serializers.PrimaryKeyRelatedField(
         many=True, queryset=Tag.objects.all())
 
@@ -113,7 +113,7 @@ class RecipeSerializer(serializers.ModelSerializer):
                 'id': ingredient_in_recipe.ingredient.id,
                 'amount': ingredient_in_recipe.amount,
                 'measurement_unit': ingredient_in_recipe.ingredient.measurement_unit,
-                'name': ingredient_in_recipe.ingredient.title
+                'name': ingredient_in_recipe.ingredient.name
             }
             result.append(entry)
 
@@ -239,11 +239,6 @@ class ListUserSerializer(serializers.ModelSerializer):
         follow = Follow.objects.filter(author=user, user=instance).exists()
         data['is_subscribed'] = follow
         return data
-
-
-class ChangePasswordSerializer(serializers.Serializer):
-    current_password = serializers.CharField(required=True)
-    new_password = serializers.CharField(required=True)
 
 
 class CustomUserSerializer(UserCreateSerializer):

@@ -3,24 +3,25 @@ import io
 from djoser.views import UserViewSet
 
 from rest_framework import viewsets, status, mixins
-from rest_framework.permissions import IsAdminUser, IsAuthenticated
+from rest_framework.permissions import IsAdminUser, IsAuthenticated, AllowAny, IsAuthenticatedOrReadOnly
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 from django.http import FileResponse
 from rest_framework.pagination import LimitOffsetPagination
 from django.db.models import Sum
+import django_filters.rest_framework
 
 from django.contrib.auth.models import User
 
 from recipe.models import Recipe, ShoppingList, Follow, Ingredient, IngredientsRecipe, Tag
 
-from .permissions import (IsAuthOrReadOnly,
-                          IsAdminOrReadOnly,
-                          IsAuthorOrReadOnly)
+from .permissions import (IsAdminOrReadOnly,
+                          IsAuthorOrReadOnly,
+                          IsAuthorOrAdmin)
 from .serializers import (RecipeSerializer, TagtSerializer,
                           ListUserSerializer, ShoppingListSerializer,
-                          ChangePasswordSerializer, CustomUserSerializer,
+                          CustomUserSerializer,
                           AddRecipeInShoppingCart, FollowSerializer,
                           IngredientsSerializers, RecipeListSerializers)
 from .filters import RecipeFilter
@@ -28,8 +29,8 @@ from .filters import RecipeFilter
 
 class RecipeViewset(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
-    permission_classes = (IsAuthorOrReadOnly, IsAuthOrReadOnly)
     filterset_class = RecipeFilter
+    permission_classes = (IsAuthenticatedOrReadOnly, )
     pagination_class = LimitOffsetPagination
 
     def get_serializer_class(self):
@@ -41,14 +42,15 @@ class RecipeViewset(viewsets.ModelViewSet):
         return serializer.save(author=self.request.user)
 
 
-class TagViewset(viewsets.ModelViewSet):
+class TagViewset(mixins.RetrieveModelMixin, mixins.ListModelMixin, viewsets.GenericViewSet):
     queryset = Tag.objects.all()
     serializer_class = TagtSerializer
-    permission_classes = (IsAdminOrReadOnly, )
+    permission_classes = (AllowAny, )
+    pagination_class = None
 
-    def get_object(self):
-        queryset = get_object_or_404(Tag, id=self.kwargs.get('pk'))
-        return queryset
+    # def get_object(self):
+    #     queryset = get_object_or_404(Tag, id=self.kwargs.get('pk'))
+    #     return queryset
 
 
 class ListUserViewset(mixins.ListModelMixin, viewsets.GenericViewSet):
@@ -63,12 +65,15 @@ class ShoppingListViewSet(mixins.ListModelMixin,
                           viewsets.GenericViewSet):
     serializer_class = ShoppingListSerializer
     permission_classes = (IsAuthenticated, )
+    pagination_class = PageNumberPagination
 
     def get_queryset(self):
         return ShoppingList.objects.filter(user_id=self.request.user.id)
 
 
 class AddRecipeInShoppingCart(mixins.CreateModelMixin,
+                              mixins.UpdateModelMixin,
+                              mixins.DestroyModelMixin,
                               viewsets.GenericViewSet):
     serializer_class = AddRecipeInShoppingCart
     permission_classes = (IsAuthenticated, )
@@ -78,23 +83,6 @@ class AddRecipeInShoppingCart(mixins.CreateModelMixin,
 
     def perform_create(self, serializer) -> None:
         serializer.save(user=self.request.user, recipe=self.get_recipe())
-
-
-class ChangePasswordViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
-    serializer_class = ChangePasswordSerializer
-    permission_classes = (IsAuthenticated, )
-
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
-        headers = self.get_success_headers(serializer.data)
-        return Response(status=status.HTTP_204_NO_CONTENT, headers=headers)
-
-    def perform_create(self, serializer):
-        user = self.request.user
-        user.set_password(raw_password=serializer.validated_data['password'])
-        user.save()
 
 
 class FollowViewSet(mixins.CreateModelMixin,
@@ -138,14 +126,15 @@ class FollowSubscriptionsViewSet(mixins.ListModelMixin,
 class IngridientsViewSet(viewsets.ModelViewSet):
     queryset = Ingredient.objects.all()
     serializer_class = IngredientsSerializers
-    pagination_class = PageNumberPagination
-    permission_classes = (IsAdminOrReadOnly, )
+    pagination_class = None
+    permission_classes = (AllowAny, )
+    filter_backends = [django_filters.rest_framework.DjangoFilterBackend]
 
 
 class CustomUserViewSet(UserViewSet):
-
-    # def get_permissions(self):
-    #     return super().get_permissions()
+    queryset = User.objects.all()
+    pagination_class = LimitOffsetPagination
+    permission_classes = (AllowAny, )
 
     def get_serializer_class(self):
         if self.action in ('list', 'retrieve'):
