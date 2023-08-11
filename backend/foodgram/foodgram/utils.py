@@ -1,9 +1,7 @@
 import io
-import reportlab
 from django.http import FileResponse
 from django.db.models import Sum
 from reportlab.pdfgen import canvas
-from reportlab.pdfgen.canvas import Canvas
 from reportlab.pdfbase.ttfonts import TTFont
 
 from rest_framework import generics
@@ -48,4 +46,5 @@ class FileDownloadListAPIView(generics.ListAPIView):
         p.save()
 
         buffer.seek(0)
-        return FileResponse(buffer, as_attachment=True, filename="ingredients.pdf")
+        return FileResponse(buffer, as_attachment=True,
+                            filename="ingredients.pdf")

@@ -1,31 +1,27 @@
-import io
 
 from djoser.views import UserViewSet
 
 from rest_framework.decorators import action
 from rest_framework import viewsets, status, mixins
-from rest_framework.permissions import IsAdminUser, IsAuthenticated, AllowAny, IsAuthenticatedOrReadOnly
+from rest_framework.permissions import (IsAdminUser, IsAuthenticated,
+                                        AllowAny, IsAuthenticatedOrReadOnly)
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
-from django.http import FileResponse
 from rest_framework.pagination import LimitOffsetPagination
-from django.db.models import Sum
 import django_filters.rest_framework
 from django.db.utils import IntegrityError
 
 from django.contrib.auth.models import User
 
-from recipe.models import Recipe, ShoppingList, Follow, Ingredient, IngredientsRecipe, Tag
+from recipe.models import Recipe, ShoppingList, Follow, Ingredient, Tag
 
-from .permissions import (IsAdminOrReadOnly,
-                          IsAuthorOrReadOnly,
-                          IsAuthorOrAdmin)
 from .serializers import (RecipeSerializer, TagtSerializer,
                           ListUserSerializer, ShoppingListSerializer,
                           CustomUserSerializer,
                           AddRecipeInShoppingCart, FollowSerializer,
-                          IngredientsSerializers, RecipeListSerializers, UserWithRecipes)
+                          IngredientsSerializers, RecipeListSerializers,
+                          UserWithRecipes)
 from .filters import RecipeFilter
 
 
@@ -44,7 +40,9 @@ class RecipeViewset(viewsets.ModelViewSet):
         return serializer.save(author=self.request.user)
 
 
-class TagViewset(mixins.RetrieveModelMixin, mixins.ListModelMixin, viewsets.GenericViewSet):
+class TagViewset(mixins.RetrieveModelMixin,
+                 mixins.ListModelMixin,
+                 viewsets.GenericViewSet):
     queryset = Tag.objects.all()
     serializer_class = TagtSerializer
     permission_classes = (AllowAny, )
@@ -141,11 +139,15 @@ class CustomUserViewSet(UserViewSet):
         user = request.user
         context = super().get_serializer_context()
         if author.id == user.id:
-            return Response(status=status.HTTP_400_BAD_REQUEST, data={'errors': 'Вы не можете подписаться на самого себя'})
+            return Response(status=status.HTTP_400_BAD_REQUEST,
+                            data={'errors':
+                                  'Вы не можете подписаться на самого себя'})
         try:
             Follow.objects.create(user=user, author=author)
-        except IntegrityError as error:
-            return Response(status=status.HTTP_400_BAD_REQUEST, data={'errors': 'вы уже подписаны на данного пользователя'})
-        serializer = UserWithRecipes(instance=user, context=context)
+        except IntegrityError:
+            return Response(status=status.HTTP_400_BAD_REQUEST,
+                            data={'errors':
+                                  'вы уже подписаны на данного пользователя'})
+        serializer = UserWithRecipes(instance=author, context=context)
 
         return Response(status=status.HTTP_201_CREATED, data=serializer.data)

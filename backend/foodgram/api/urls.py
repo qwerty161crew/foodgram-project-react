@@ -8,8 +8,8 @@ router = DefaultRouter()
 router.register('recipes', views.RecipeViewset, basename='recipe')
 router.register('users/subscriptions',
                 views.FollowSubscriptionsViewSet, basename='follow_list')
-router.register(r'users/',
-                views.FollowViewSet, basename='follow_create')
+# router.register(r'users/',
+#                 views.FollowViewSet, basename='follow_create')
 router.register('users', views.CustomUserViewSet, basename='user')
 router.register(r'recipes/(?P<recipe_id>\d+)/shopping_cart',
                 views.AddRecipeInShoppingCart, basename='shopping_cart')

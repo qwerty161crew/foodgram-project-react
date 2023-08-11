@@ -1,10 +1,9 @@
 import base64
 import webcolors
 from rest_framework import serializers
-from djoser.serializers import UserCreateSerializer, TokenCreateSerializer
+from djoser.serializers import UserCreateSerializer
 from django.core.files.base import ContentFile
 from django.db import models, transaction
-from rest_framework.generics import get_object_or_404
 from recipe.models import (Recipe, Tag, Ingredient,
                            FavoritesRecipe,
                            Follow, ShoppingList, IngredientsRecipe)
@@ -112,7 +111,8 @@ class RecipeSerializer(serializers.ModelSerializer):
             entry = {
                 'id': ingredient_in_recipe.ingredient.id,
                 'amount': ingredient_in_recipe.amount,
-                'measurement_unit': ingredient_in_recipe.ingredient.measurement_unit,
+                'measurement_unit':
+                ingredient_in_recipe.ingredient.measurement_unit,
                 'name': ingredient_in_recipe.ingredient.name
             }
             result.append(entry)
@@ -240,14 +240,15 @@ class ListUserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ('username', 'email', 'first_name',
+        fields = ('id', 'username', 'email', 'first_name',
                   'last_name', 'is_subscribed')
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
         user = self.context['request'].user
-        follow = Follow.objects.filter(author=instance, user=user).exists()
-        data['is_subscribed'] = follow
+        if user.is_authenticated:
+            follow = Follow.objects.filter(author=instance, user=user).exists()
+            data['is_subscribed'] = follow
         return data
 
 
@@ -298,11 +299,15 @@ class UserWithRecipes(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        # recipes = RecipeSerializer(data=instance).data
-        # recipes_count = len(recipes)
+        print(instance)
+        queryset = Recipe.objects.filter(author=instance)
+        serializers = RecipeSerializer(queryset, many=True)
+        # serializers.is_valid(raise_exception=True)
+        recipes_count = Recipe.objects.filter(author=instance).count()
         is_subscribed = Follow.objects.filter(
             user=self.context['request'].user, author=instance).exists()
-        # data['recipes'] = recipes
-        # data['recipes_count'] = recipes_count
+        data['recipes'] = serializers.data
+        data['recipes_count'] = recipes_count
         data['is_subscribed'] = is_subscribed
+        print(data)
         return data
