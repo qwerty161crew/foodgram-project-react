@@ -6,8 +6,6 @@ from foodgram.utils import FileDownloadListAPIView
 
 router = DefaultRouter()
 router.register('recipes', views.RecipeViewset, basename='recipe')
-router.register('users/subscriptions',
-                views.FollowSubscriptionsViewSet, basename='follow_list')
 # router.register(r'users/',
 #                 views.FollowViewSet, basename='follow_create')
 router.register('users', views.CustomUserViewSet, basename='user')

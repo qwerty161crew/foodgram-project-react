@@ -21,7 +21,8 @@ from .serializers import (RecipeSerializer, TagtSerializer,
                           CustomUserSerializer,
                           AddRecipeInShoppingCart, FollowSerializer,
                           IngredientsSerializers, RecipeListSerializers,
-                          UserWithRecipes)
+                          UserWithRecipes, UserSubscriptions
+                          )
 from .filters import RecipeFilter
 
 
@@ -103,18 +104,6 @@ class FollowViewSet(mixins.CreateModelMixin,
         return serializer.save(user=self.request.user, author=author)
 
 
-class FollowSubscriptionsViewSet(mixins.ListModelMixin,
-                                 viewsets.GenericViewSet):
-    serializer_class = FollowSerializer
-    permission_classes = (IsAuthenticated, )
-
-    def get_queryset(self):
-        return Follow.objects.filter(user=self.request.user)
-
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
-
-
 class IngridientsViewSet(viewsets.ModelViewSet):
     queryset = Ingredient.objects.all()
     serializer_class = IngredientsSerializers
@@ -151,3 +140,11 @@ class CustomUserViewSet(UserViewSet):
         serializer = UserWithRecipes(instance=author, context=context)
 
         return Response(status=status.HTTP_201_CREATED, data=serializer.data)
+
+    @action(detail=False, methods=['GET'])
+    def subscriptions(self, request, *args, **kwargs):
+        user = request.user
+        context = self.get_serializer_context()
+        serializer = UserSubscriptions(instance=user, context=context)
+        # serializer.is_valid()
+        return Response(status=status.HTTP_200_OK, data=serializer.data)

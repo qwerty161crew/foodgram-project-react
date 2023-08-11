@@ -299,7 +299,6 @@ class UserWithRecipes(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        print(instance)
         queryset = Recipe.objects.filter(author=instance)
         serializers = RecipeSerializer(queryset, many=True)
         # serializers.is_valid(raise_exception=True)
@@ -310,4 +309,24 @@ class UserWithRecipes(serializers.ModelSerializer):
         data['recipes_count'] = recipes_count
         data['is_subscribed'] = is_subscribed
         print(data)
+        return data
+
+
+class UserSubscriptions(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ()
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        queryset = Follow.objects.filter(user=instance)
+        recipes = Recipe.objects.filter(author__following__in=queryset)
+        serializer = RecipeSerializer(recipes, many=True)
+        recipes_count = Recipe.objects.filter(author=instance).count()
+        is_subscribed = Follow.objects.filter(
+            user=self.context['request'].user, author=instance).exists()
+
+        data['recipes'] = serializer.data
+        data['recipes_count'] = recipes_count
+        data['is_subscribed'] = is_subscribed
         return data
