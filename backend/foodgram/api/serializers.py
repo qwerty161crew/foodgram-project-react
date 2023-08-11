@@ -140,17 +140,10 @@ class FavouritesRecipeSerializer(serializers.ModelSerializer):
 
 
 class FollowSerializer(serializers.ModelSerializer):
-    user = serializers.SlugRelatedField(
-        slug_field='username',
-        queryset=User.objects.all(),
-        default=serializers.CurrentUserDefault())
-    # author = serializers.SlugRelatedField(
-    #     slug_field='username',
-    #     queryset=User.objects.all())
 
     def validate(self, data):
         print(data, self.context, self.instance)
-        user = get_object_or_404(User, id=self.context['view'].kwargs['id'])
+        user = data.user
         follow = Follow.objects.filter(
             user=self.context['request'].user, author=user).exists()
         if user == self.context['request'].user:
@@ -163,8 +156,7 @@ class FollowSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Follow
-        fields = ('user', )
-        # lookup_field = 'pk'
+        fields = ()
 
         constraints = [
             models.UniqueConstraint(
@@ -176,6 +168,12 @@ class FollowSerializer(serializers.ModelSerializer):
                 name='prevent_self_author',
             )
         ]
+
+    def create(self, validated_data):
+        author = self.context['view'].kwargs['user_id']
+        follow = Follow.objects.create(user=self.context['request'].user,
+                                       author=author).save()
+        return follow
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
@@ -198,8 +196,12 @@ class ShoppingListSerializer(serializers.ModelSerializer):
 class AddRecipeInShoppingCart(serializers.ModelSerializer):
     user = serializers.SlugRelatedField(
         slug_field='username', read_only=True)
-    recipe = serializers.SlugRelatedField(
-        slug_field='name', queryset=Recipe.objects.all())
+    recipe = serializers.SerializerMethodField(
+        'get_recipe')
+
+    def get_recipe(self):
+        recipe_id = self.context['view'].kwargs.get('pk')
+        return recipe_id
 
     def validate(self, data):
         cart = ShoppingList.objects.filter(
@@ -212,7 +214,7 @@ class AddRecipeInShoppingCart(serializers.ModelSerializer):
 
     class Meta:
         model = ShoppingList
-        fields = ('id', 'user', 'recipe')
+        fields = ('__all__')
 
         constraints = [
             models.UniqueConstraint(
@@ -220,6 +222,14 @@ class AddRecipeInShoppingCart(serializers.ModelSerializer):
                 name='unique_user_recipe'
             ),
         ]
+
+    def create(self, validated_data):
+        request_object = self.context['request']
+        recipe_id = request_object.query_params.get('recipe_id')
+        cart = ShoppingList.objects.create(
+            user=self.context['request'].user,
+            recipe__id=recipe_id).save()
+        return cart
 
 
 class ListUserSerializer(serializers.ModelSerializer):
@@ -236,7 +246,7 @@ class ListUserSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         data = super().to_representation(instance)
         user = self.context['request'].user
-        follow = Follow.objects.filter(author=user, user=instance).exists()
+        follow = Follow.objects.filter(author=instance, user=user).exists()
         data['is_subscribed'] = follow
         return data
 
@@ -278,4 +288,21 @@ class RecipeListSerializers(RecipeSerializer):
         data['is_favorited'] = is_favorited
         data['is_in_shopping_cart'] = is_in_shopping_cart
 
+        return data
+
+
+class UserWithRecipes(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ('first_name', 'last_name', 'email', 'username')
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        # recipes = RecipeSerializer(data=instance).data
+        # recipes_count = len(recipes)
+        is_subscribed = Follow.objects.filter(
+            user=self.context['request'].user, author=instance).exists()
+        # data['recipes'] = recipes
+        # data['recipes_count'] = recipes_count
+        data['is_subscribed'] = is_subscribed
         return data

@@ -2,6 +2,7 @@ import io
 
 from djoser.views import UserViewSet
 
+from rest_framework.decorators import action
 from rest_framework import viewsets, status, mixins
 from rest_framework.permissions import IsAdminUser, IsAuthenticated, AllowAny, IsAuthenticatedOrReadOnly
 from rest_framework.pagination import PageNumberPagination
@@ -11,6 +12,7 @@ from django.http import FileResponse
 from rest_framework.pagination import LimitOffsetPagination
 from django.db.models import Sum
 import django_filters.rest_framework
+from django.db.utils import IntegrityError
 
 from django.contrib.auth.models import User
 
@@ -23,7 +25,7 @@ from .serializers import (RecipeSerializer, TagtSerializer,
                           ListUserSerializer, ShoppingListSerializer,
                           CustomUserSerializer,
                           AddRecipeInShoppingCart, FollowSerializer,
-                          IngredientsSerializers, RecipeListSerializers)
+                          IngredientsSerializers, RecipeListSerializers, UserWithRecipes)
 from .filters import RecipeFilter
 
 
@@ -77,12 +79,13 @@ class AddRecipeInShoppingCart(mixins.CreateModelMixin,
                               viewsets.GenericViewSet):
     serializer_class = AddRecipeInShoppingCart
     permission_classes = (IsAuthenticated, )
+    queryset = Recipe.objects.all()
 
-    def get_recipe(self):
-        return get_object_or_404(Recipe, id=self.kwargs.get('recipe_id'))
+    # def get_recipe(self):
+    #     return get_object_or_404(Recipe, id=self.kwargs.get('recipe_id'))
 
     def perform_create(self, serializer) -> None:
-        serializer.save(user=self.request.user, recipe=self.get_recipe())
+        serializer.save(user=self.request.user, recipe=self.get_object())
 
 
 class FollowViewSet(mixins.CreateModelMixin,
@@ -90,25 +93,16 @@ class FollowViewSet(mixins.CreateModelMixin,
                     viewsets.GenericViewSet):
     serializer_class = FollowSerializer
     permission_classes = (IsAuthenticated, )
-    # lookup_field = 'pk'
-
-    # def get_user(self):
-    #     return get_object_or_404(User, user=self.get_object('id'))
-
-    def destroy(self, request, pk=None):
-        author_id = self.request.parser_context['kwargs'].get('id')
-        author = get_object_or_404(User, id=author_id)
-        print(author)
-        self.serializer.delete(user=self.request.user, author=author)
-        return Response(status=status.HTTP_204_NO_CONTENT)
+    lookup_field = 'user_id'
 
     def get_queryset(self):
         return self.request.user.follower.all()
 
     def perform_create(self, serializer):
-        author_id = self.request.parser_context['kwargs'].get('id')
+        author_id = self.get_object()
         author = get_object_or_404(User, id=author_id)
-        serializer.save(user=self.request.user, author=author)
+
+        return serializer.save(user=self.request.user, author=author)
 
 
 class FollowSubscriptionsViewSet(mixins.ListModelMixin,
@@ -140,3 +134,18 @@ class CustomUserViewSet(UserViewSet):
         if self.action in ('list', 'retrieve'):
             return ListUserSerializer
         return CustomUserSerializer
+
+    @action(detail=True, methods=['POST'])
+    def subscribe(self, request, *args, **kwargs):
+        author = self.get_object()
+        user = request.user
+        context = super().get_serializer_context()
+        if author.id == user.id:
+            return Response(status=status.HTTP_400_BAD_REQUEST, data={'errors': 'Вы не можете подписаться на самого себя'})
+        try:
+            Follow.objects.create(user=user, author=author)
+        except IntegrityError as error:
+            return Response(status=status.HTTP_400_BAD_REQUEST, data={'errors': 'вы уже подписаны на данного пользователя'})
+        serializer = UserWithRecipes(instance=user, context=context)
+
+        return Response(status=status.HTTP_201_CREATED, data=serializer.data)
