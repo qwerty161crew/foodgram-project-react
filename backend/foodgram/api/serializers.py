@@ -190,7 +190,11 @@ class ShoppingListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ShoppingList
-        fields = ('id', 'user', 'recipe')
+        fields = ()
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        
 
 
 class AddRecipeInShoppingCart(serializers.ModelSerializer):

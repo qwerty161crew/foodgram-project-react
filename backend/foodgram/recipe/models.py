@@ -11,7 +11,7 @@ class Ingredient(models.Model):
     measurement_unit = models.CharField(max_length=60)
 
     def __str__(self):
-        return self.name+" : "+self.measurement_unit
+        return f'{self.name} {self.measurement_unit}'
 
 
 class Tag(models.Model):

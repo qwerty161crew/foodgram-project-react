@@ -14,7 +14,7 @@ from django.db.utils import IntegrityError
 
 from django.contrib.auth.models import User
 
-from recipe.models import Recipe, ShoppingList, Follow, Ingredient, Tag
+from recipe.models import Recipe, ShoppingList, Follow, Ingredient, Tag, FavoritesRecipe
 
 from .serializers import (RecipeSerializer, TagtSerializer,
                           ListUserSerializer, ShoppingListSerializer,
@@ -40,6 +40,17 @@ class RecipeViewset(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         return serializer.save(author=self.request.user)
 
+    @action(detail=True, methods=['POST'])
+    def favorite(self, request, *args, **kwargs):
+        user = request.user
+        recipe_id = self.get_object()
+        context = self.get_serializer_context()
+        if FavoritesRecipe.objects.filter(user=user, recipe=recipe_id).exists():
+            return Response(status=status.HTTP_400_BAD_REQUEST, data={'errors': 'вы уже добавили этот рецепт'})
+        FavoritesRecipe.objects.create(user=user, recipe=recipe_id)
+        serializers = RecipeListSerializers(instance=recipe_id, context=context)
+        return Response(status=status.HTTP_201_CREATED, data=serializers.data)
+
 
 class TagViewset(mixins.RetrieveModelMixin,
                  mixins.ListModelMixin,
@@ -59,32 +70,6 @@ class ListUserViewset(mixins.ListModelMixin, viewsets.GenericViewSet):
     serializer_class = ListUserSerializer
     pagination_class = PageNumberPagination
     permission_classes = (IsAdminUser, )
-
-
-class ShoppingListViewSet(mixins.ListModelMixin,
-                          mixins.RetrieveModelMixin,
-                          viewsets.GenericViewSet):
-    serializer_class = ShoppingListSerializer
-    permission_classes = (IsAuthenticated, )
-    pagination_class = PageNumberPagination
-
-    def get_queryset(self):
-        return ShoppingList.objects.filter(user_id=self.request.user.id)
-
-
-class AddRecipeInShoppingCart(mixins.CreateModelMixin,
-                              mixins.UpdateModelMixin,
-                              mixins.DestroyModelMixin,
-                              viewsets.GenericViewSet):
-    serializer_class = AddRecipeInShoppingCart
-    permission_classes = (IsAuthenticated, )
-    queryset = Recipe.objects.all()
-
-    # def get_recipe(self):
-    #     return get_object_or_404(Recipe, id=self.kwargs.get('recipe_id'))
-
-    def perform_create(self, serializer) -> None:
-        serializer.save(user=self.request.user, recipe=self.get_object())
 
 
 class FollowViewSet(mixins.CreateModelMixin,
