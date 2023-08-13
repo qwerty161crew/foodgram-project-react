@@ -18,10 +18,10 @@ from recipe.models import Recipe, ShoppingList, Follow, Ingredient, Tag, Favorit
 
 from .serializers import (RecipeSerializer, TagtSerializer,
                           ListUserSerializer, ShoppingListSerializer,
-                          CustomUserSerializer,
-                          AddRecipeInShoppingCart, FollowSerializer,
+                          CustomUserSerializer, FollowSerializer,
                           IngredientsSerializers, RecipeListSerializers,
-                          UserWithRecipes, UserSubscriptions
+                          UserWithRecipes, UserSubscriptions,
+                          FavoriteRecipeSerializers
                           )
 from .filters import RecipeFilter
 
@@ -40,17 +40,50 @@ class RecipeViewset(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         return serializer.save(author=self.request.user)
 
-    @action(detail=True, methods=['POST'])
+    @action(detail=True, methods=['POST', 'DELETE'])
     def favorite(self, request, *args, **kwargs):
         user = request.user
         recipe_id = self.get_object()
         context = self.get_serializer_context()
-        if FavoritesRecipe.objects.filter(user=user, recipe=recipe_id).exists():
-            return Response(status=status.HTTP_400_BAD_REQUEST, data={'errors': 'вы уже добавили этот рецепт'})
-        FavoritesRecipe.objects.create(user=user, recipe=recipe_id)
-        serializers = RecipeListSerializers(
-            instance=recipe_id, context=context)
-        return Response(status=status.HTTP_201_CREATED, data=serializers.data)
+        if request.method == 'POST':
+            if FavoritesRecipe.objects.filter(user=user, recipe=recipe_id).exists():
+                return Response(status=status.HTTP_400_BAD_REQUEST, data={'errors': 'вы уже добавили этот рецепт'})
+            FavoritesRecipe.objects.create(user=user, recipe=recipe_id)
+            favorite_recipes = FavoritesRecipe.objects.filter(user=user)
+
+            serializers = FavoriteRecipeSerializers(
+                favorite_recipes)
+            return Response(status=status.HTTP_201_CREATED, data=serializers.data)
+        if request.method == 'DELETE':
+            if not FavoritesRecipe.objects.filter(user=user, recipe=recipe_id).exists():
+                return Response(status=status.HTTP_400_BAD_REQUEST, data={'errors': 'У вас нет этого рецепта'})
+            FavoritesRecipe.objects.filter(
+                user=user, recipe=recipe_id).delete()
+            favorite_recipes = FavoritesRecipe.objects.filter(user=user)
+
+            serializers = FavoriteRecipeSerializers(
+                favorite_recipes, context=context)
+            return Response(status=status.HTTP_204_NO_CONTENT, data=serializers.data)
+
+    @action(detail=True, methods=['POST', 'DELETE'])
+    def shopping_cart(self, request, *args, **kwargs):
+        user = request.user
+        recipe_id = self.get_object()
+        context = self.get_serializer_context()
+        if request.method == 'POST':
+            if ShoppingList.objects.filter(user=user, recipe=recipe_id):
+                return Response(status=status.HTTP_400_BAD_REQUEST, data={'errors': 'вы уже добавили этот рецепт'})
+            ShoppingList.objects.create(user=user, recipe=recipe_id)
+            recipe_in_cart = ShoppingList.objects.filter(user=user)
+            serializers = ShoppingListSerializer(
+                recipe_in_cart, context=context, many=True)
+            return Response(status=status.HTTP_201_CREATED, data=serializers.data)
+        if request.method == 'DELETE':
+            ShoppingList.objects.filter(user=user, recipe=recipe_id).delete()
+            recipe_in_cart = ShoppingList.objects.filter(user=user)
+            serializers = ShoppingListSerializer(
+                recipe_in_cart, context=context, many=True)
+            return Response(status=status.HTTP_204_NO_CONTENT, data=serializers.data)
 
 
 class TagViewset(mixins.RetrieveModelMixin,

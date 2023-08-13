@@ -12,8 +12,9 @@ from django.contrib.auth.models import User
 
 class AuthorSerializers(serializers.ModelSerializer):
     class Meta:
-        model = User  
+        model = User
         fields = ('id', 'first_name', 'last_name', 'email', 'username')
+
 
 class Base64ImageField(serializers.ImageField):
     def to_internal_value(self, data):
@@ -123,24 +124,6 @@ class RecipeSerializer(serializers.ModelSerializer):
         return data
 
 
-class FavouritesRecipeSerializer(serializers.ModelSerializer):
-    user = serializers.SlugRelatedField(slug_field='username', read_only=True)
-    recipe = serializers.SlugRelatedField(slug_field='name', read_only=True)
-
-    class Meta:
-        field = ('__all__')
-        model = FavoritesRecipe
-
-    def validate(self, data):
-        if FavoritesRecipe.objects.filter(
-                recipe=self.context['user'].username).exists():
-            raise serializers.ValidationError('У вас уже есть этот рецепт')
-        if FavoritesRecipe.objects.filter(user=self.context['user']):
-            raise serializers.ValidationError(
-                'Нельзя добавлять свой рецепт :)')
-        return data
-
-
 class FollowSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
@@ -183,58 +166,6 @@ class FollowSerializer(serializers.ModelSerializer):
         recipes = Recipe.objects.filter(author=user)
         data['recipes'] = recipes
         return data
-
-
-class ShoppingListSerializer(serializers.ModelSerializer):
-    user = serializers.SlugRelatedField(slug_field='username', read_only=True)
-    recipe = serializers.SlugRelatedField(
-        slug_field='recipe', many=True, read_only=True)
-
-    class Meta:
-        model = ShoppingList
-        fields = ()
-
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-
-
-class AddRecipeInShoppingCart(serializers.ModelSerializer):
-    user = serializers.SlugRelatedField(
-        slug_field='username', read_only=True)
-    recipe = serializers.SerializerMethodField(
-        'get_recipe')
-
-    def get_recipe(self):
-        recipe_id = self.context['view'].kwargs.get('pk')
-        return recipe_id
-
-    def validate(self, data):
-        cart = ShoppingList.objects.filter(
-            user=self.context['request'].user,
-            recipe__id=self.context['view'].kwargs.get('recipe_id')).exists()
-        if cart is True:
-            raise serializers.ValidationError(
-                'Вы уже добавили рецепт!')
-        return data
-
-    class Meta:
-        model = ShoppingList
-        fields = ('__all__')
-
-        constraints = [
-            models.UniqueConstraint(
-                fields=['user', 'recipe'],
-                name='unique_user_recipe'
-            ),
-        ]
-
-    def create(self, validated_data):
-        request_object = self.context['request']
-        recipe_id = request_object.query_params.get('recipe_id')
-        cart = ShoppingList.objects.create(
-            user=self.context['request'].user,
-            recipe__id=recipe_id).save()
-        return cart
 
 
 class ListUserSerializer(serializers.ModelSerializer):
@@ -332,4 +263,53 @@ class UserSubscriptions(serializers.ModelSerializer):
         data['recipes'] = serializer.data
         data['recipes_count'] = recipes_count
         data['is_subscribed'] = is_subscribed
+        return data
+
+
+class RecipeMinified(serializers.ModelSerializer):
+    image = Base64ImageField(required=True, allow_null=True)
+
+    class Meta:
+        model = Recipe
+        fields = ('id', 'image', 'name', 'cooking_time')
+
+
+class FavoriteRecipeSerializers(serializers.ModelSerializer):
+
+    class Meta:
+        model = FavoritesRecipe
+        fields = ()
+
+    def validate(self, data):
+        if FavoritesRecipe.objects.filter(
+                recipe=self.context['user'].username).exists():
+            raise serializers.ValidationError('У вас уже есть этот рецепт')
+        if FavoritesRecipe.objects.filter(user=self.context['user']):
+            raise serializers.ValidationError(
+                'Нельзя добавлять свой рецепт :)')
+        return data
+
+    def to_representation(self, instance):
+        print(instance)
+        data = super().to_representation(instance)
+        recipes = Recipe.objects.filter(is_favorited__in=instance)
+        print(recipes)
+        serializers = RecipeMinified(recipes, context=self.context, many=True)
+
+        data['recipes'] = serializers.data
+        return data
+
+
+class ShoppingListSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = ShoppingList
+        fields = ()
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        recipes = Recipe.objects.filter(is_in_shopping_cart__in=instance)
+        serializers = RecipeMinified(recipes, context=self.context)
+
+        data['recipes'] = serializers.data
         return data
