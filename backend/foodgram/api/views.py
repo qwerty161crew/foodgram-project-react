@@ -48,7 +48,8 @@ class RecipeViewset(viewsets.ModelViewSet):
         if FavoritesRecipe.objects.filter(user=user, recipe=recipe_id).exists():
             return Response(status=status.HTTP_400_BAD_REQUEST, data={'errors': 'вы уже добавили этот рецепт'})
         FavoritesRecipe.objects.create(user=user, recipe=recipe_id)
-        serializers = RecipeListSerializers(instance=recipe_id, context=context)
+        serializers = RecipeListSerializers(
+            instance=recipe_id, context=context)
         return Response(status=status.HTTP_201_CREATED, data=serializers.data)
 
 
@@ -129,7 +130,10 @@ class CustomUserViewSet(UserViewSet):
     @action(detail=False, methods=['GET'])
     def subscriptions(self, request, *args, **kwargs):
         user = request.user
+        follows = Follow.objects.filter(user=user)
+        users = User.objects.filter(following__in=follows)
         context = self.get_serializer_context()
-        serializer = UserSubscriptions(instance=user, context=context)
+        serializer = UserSubscriptions(
+            users, context=context, many=True)
         # serializer.is_valid()
         return Response(status=status.HTTP_200_OK, data=serializer.data)

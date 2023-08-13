@@ -10,6 +10,11 @@ from recipe.models import (Recipe, Tag, Ingredient,
 from django.contrib.auth.models import User
 
 
+class AuthorSerializers(serializers.ModelSerializer):
+    class Meta:
+        model = User  
+        fields = ('id', 'first_name', 'last_name', 'email', 'username')
+
 class Base64ImageField(serializers.ImageField):
     def to_internal_value(self, data):
         if isinstance(data, str) and data.startswith('data:image'):
@@ -55,10 +60,7 @@ class TagtSerializer(serializers.ModelSerializer):
 
 
 class RecipeSerializer(serializers.ModelSerializer):
-    author = serializers.SlugRelatedField(
-        slug_field='username',
-        read_only=True,
-    )
+    author = AuthorSerializers()
     ingredients = IngredientInRecipeSerializer(
         many=True, required=True, source='ingredients_in_recipe')
     image = Base64ImageField(required=True, allow_null=True)
@@ -194,7 +196,6 @@ class ShoppingListSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        
 
 
 class AddRecipeInShoppingCart(serializers.ModelSerializer):
@@ -312,7 +313,6 @@ class UserWithRecipes(serializers.ModelSerializer):
         data['recipes'] = serializers.data
         data['recipes_count'] = recipes_count
         data['is_subscribed'] = is_subscribed
-        print(data)
         return data
 
 
@@ -323,12 +323,11 @@ class UserSubscriptions(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        queryset = Follow.objects.filter(user=instance)
-        recipes = Recipe.objects.filter(author__following__in=queryset)
+        recipes = Recipe.objects.filter(author=instance)
         serializer = RecipeSerializer(recipes, many=True)
         recipes_count = Recipe.objects.filter(author=instance).count()
         is_subscribed = Follow.objects.filter(
-            user=self.context['request'].user, author=instance).exists()
+            user=self.context['request'].user, author__username=instance).exists()
 
         data['recipes'] = serializer.data
         data['recipes_count'] = recipes_count
