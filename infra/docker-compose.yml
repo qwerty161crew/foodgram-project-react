@@ -1,31 +1,33 @@
 version: '3.3'
 
 volumes:
-  pg_data:
+  postgres_data:
   static:
-
+  media:
+  data:
 
 services:
 
   db:
-    image: postgres:13.10
-    env_file: .env
+    image: postgres:13.0
     volumes:
-      - pg_data:/var/lib/postgresql/data
-
-
+      - postgres_data:/var/lib/postgresql/data/
+    env_file:
+      - ./.env
 
   backend:
     build: ../backend/
-    env_file: .env
     volumes:
-      - static:/backend_static
-
+      - static:/app/static/
+      - media:/app/media/
+      - data:/app/data
+    depends_on:
+      - db
+    env_file:
+      - ./.env
 
   frontend:
-    build:
-      context: ../frontend
-      dockerfile: Dockerfile
+    build: ../frontend/
     volumes:
       - ./frontend/:/app/result_build/
 
@@ -37,3 +39,10 @@ services:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf
       - ../frontend/build:/usr/share/nginx/html/
       - ../docs/:/usr/share/nginx/html/api/docs/
+      - static:/var/html/static/
+      - media:/var/html/media/
+    restart: always
+    depends_on:
+      - backend
+      - frontend
+
