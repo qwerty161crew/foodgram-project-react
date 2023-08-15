@@ -1,7 +1,6 @@
 from . import views
 from django.urls import path, include, re_path
 from rest_framework.routers import DefaultRouter
-from foodgram.utils import FileDownloadListAPIView
 
 
 router = DefaultRouter()
@@ -19,7 +18,6 @@ app_name = 'api'
 
 urlpatterns = [
     path('', include((router.urls, 'api'))),
-    path('download/', FileDownloadListAPIView.as_view(), name='donwload'),
     path('users/', include('djoser.urls')),          # new
     re_path(r'^auth/', include('djoser.urls.authtoken')),
 ]

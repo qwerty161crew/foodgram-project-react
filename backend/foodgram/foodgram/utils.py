@@ -1,50 +1,41 @@
 import io
-from django.http import FileResponse
-from django.db.models import Sum
+from django.http import HttpResponse
 from reportlab.pdfgen import canvas
 from reportlab.pdfbase.ttfonts import TTFont
 
-from rest_framework import generics
-from rest_framework.permissions import IsAuthenticated
-from recipe.models import ShoppingList, Recipe, Ingredient, IngredientsRecipe
+from recipe.models import Ingredient
 
 
-LINES = [
-    'This is line 1',
-    'This is line 2',
-    'This is line 3'
-]
+def download(ingredient_receipes):
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = (
+        "attachment; filename='shopping_cart.pdf'"
+    )
+    canvas.pdfmetrics.registerFont(
+        TTFont('FreeSans', './FreeSans.ttf'))
+    buffer = io.BytesIO()
+    pdf_file = canvas.Canvas(buffer)
+    pdf_file.setFont('FreeSans', 24)
+    pdf_file.drawString(200, 800, 'Список покупок.')
+    pdf_file.setFont('FreeSans', 14)
+    from_bottom = 750
+    for ingredient in ingredient_receipes:
+        unit = Ingredient.objects.get(id=ingredient['ingredient'])
 
+        pdf_file.drawString(50,
+                            from_bottom,
+                            f"{unit.name}: "
+                            f"{ingredient['total_amount']} - "
+                            f"{unit.measurement_unit}")
+        from_bottom -= 20
+        if from_bottom <= 50:
+            from_bottom = 800
+            pdf_file.showPage()
+            pdf_file.setFont('FreeSans', 14)
 
-class FileDownloadListAPIView(generics.ListAPIView):
-    permission_classes = (IsAuthenticated, )
-
-    def get(self, request, format=None):
-        canvas.pdfmetrics.registerFont(
-            TTFont('FreeSans', './FreeSans.ttf'))
-        buffer = io.BytesIO()
-        p = canvas.Canvas(buffer)
-        textob = p.beginText()
-        textob.setFont('FreeSans', 25)
-        shopping_lists = ShoppingList.objects.filter(user=request.user)
-        recepies = Recipe.objects.filter(
-            is_in_shopping_cart__in=shopping_lists)
-        ingredient_receipes = IngredientsRecipe.objects.filter(
-            recipe__in=recepies
-        ).values('ingredient').annotate(total_amount=Sum('amount'))
-        number_ingredient = 1
-        for ingredient in ingredient_receipes:
-            unit = Ingredient.objects.get(id=ingredient['ingredient'])
-
-            result = (f"{number_ingredient}){unit.title}: "
-                      f"{ingredient['total_amount']} - "
-                      f"{unit.measurement_unit}")
-            number_ingredient += 1
-            textob.textLine(result)
-        p.drawText(textob)
-        p.showPage()
-        p.save()
-
-        buffer.seek(0)
-        return FileResponse(buffer, as_attachment=True,
-                            filename="ingredients.pdf")
+    pdf_file.showPage()
+    pdf_file.save()
+    pdf = buffer.getvalue()
+    buffer.close()
+    response.write(pdf)
+    return response

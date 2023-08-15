@@ -15,7 +15,7 @@ class Ingredient(models.Model):
 
 
 class Tag(models.Model):
-    title = models.CharField(max_length=50, unique=True)
+    name = models.CharField(max_length=50, unique=True)
     color = models.CharField(
         'Цветовой HEX-код',
         unique=True,
@@ -30,7 +30,7 @@ class Tag(models.Model):
     slug = models.SlugField(max_length=50, unique=True)
 
     def __str__(self):
-        return self.title
+        return self.name
 
 
 class Recipe(models.Model):
@@ -39,8 +39,7 @@ class Recipe(models.Model):
     name = models.CharField(max_length=50, unique=True)
     image = models.ImageField(
         'Картинка',
-        upload_to='posts/',
-        blank=True
+        upload_to='media/',
     )
     text = models.CharField(max_length=1000)
     tags = models.ManyToManyField(Tag, related_name='recipes')

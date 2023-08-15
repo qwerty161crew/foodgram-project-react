@@ -1,8 +1,9 @@
 import base64
 import webcolors
+
+from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
 from djoser.serializers import UserCreateSerializer
-from django.core.files.base import ContentFile
 from django.db import models, transaction
 from recipe.models import (Recipe, Tag, Ingredient,
                            FavoritesRecipe,
@@ -14,14 +15,6 @@ class AuthorSerializers(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ('id', 'first_name', 'last_name', 'email', 'username')
-
-
-class Base64ImageField(serializers.ImageField):
-    def to_internal_value(self, data):
-        if isinstance(data, str) and data.startswith('data:image'):
-            format, imgstr = data.split(';base64,')
-            ext = format.split('/')[-1]
-            data = ContentFile(base64.b64decode(imgstr), name='temp.' + ext)
 
 
 class Hex2NameColor(serializers.Field):
@@ -56,12 +49,12 @@ class TagtSerializer(serializers.ModelSerializer):
     color = Hex2NameColor()
 
     class Meta:
-        fields = ('id', 'title', 'color', 'slug')
+        fields = ('id', 'name', 'color', 'slug')
         model = Tag
 
 
 class RecipeSerializer(serializers.ModelSerializer):
-    author = AuthorSerializers()
+    author = AuthorSerializers(required=False)
     ingredients = IngredientInRecipeSerializer(
         many=True, required=True, source='ingredients_in_recipe')
     image = Base64ImageField(required=True, allow_null=True)
@@ -82,7 +75,9 @@ class RecipeSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         ingredients = validated_data.pop('ingredients_in_recipe')
         tags = validated_data.pop('tags')
-        recipe = Recipe.objects.create(**validated_data)
+        validated_data['author'] = self.context['request'].user
+        recipe = Recipe.objects.create(
+            **validated_data)
         for ingredient in ingredients:
             IngredientsRecipe.objects.create(
                 ingredient_id=ingredient['id'],
@@ -237,7 +232,6 @@ class UserWithRecipes(serializers.ModelSerializer):
         data = super().to_representation(instance)
         queryset = Recipe.objects.filter(author=instance)
         serializers = RecipeSerializer(queryset, many=True)
-        # serializers.is_valid(raise_exception=True)
         recipes_count = Recipe.objects.filter(author=instance).count()
         is_subscribed = Follow.objects.filter(
             user=self.context['request'].user, author=instance).exists()
@@ -258,7 +252,8 @@ class UserSubscriptions(serializers.ModelSerializer):
         serializer = RecipeSerializer(recipes, many=True)
         recipes_count = Recipe.objects.filter(author=instance).count()
         is_subscribed = Follow.objects.filter(
-            user=self.context['request'].user, author__username=instance).exists()
+            user=self.context['request'].user,
+            author__username=instance).exists()
 
         data['recipes'] = serializer.data
         data['recipes_count'] = recipes_count

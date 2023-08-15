@@ -15,8 +15,8 @@ class RecipeAdmin(admin.ModelAdmin):
 
 
 class TagAdmin(admin.ModelAdmin):
-    list_display = ('title', 'color', 'slug')
-    search_fields = ('title', )
+    list_display = ('name', 'color', 'slug')
+    search_fields = ('name', )
     list_filter = ('color',)
 
 
