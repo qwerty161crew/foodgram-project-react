@@ -16,7 +16,7 @@ services:
       - ./.env
 
   backend:
-    build: ../backend/foodgram/
+    image: alex1312crew/foodgram_backend
     volumes:
       - static:/app/static/
       - media:/app/media/
@@ -27,14 +27,14 @@ services:
       - ./.env
 
   frontend:
-    build: ../frontend/
+    image: alex1312crew/foodgram_frontend
     volumes:
       - ./frontend/:/app/result_build/
 
   nginx:
     image: nginx:1.19.3
     ports:
-      - 80:80
+      - 8000:80
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf
       - ../frontend/build:/usr/share/nginx/html/
@@ -45,4 +45,3 @@ services:
     depends_on:
       - backend
       - frontend
-
