@@ -1,4 +1,5 @@
-import base64
+
+
 import webcolors
 
 from drf_extra_fields.fields import Base64ImageField
@@ -39,14 +40,13 @@ class IngredientInRecipeSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         result = super().validate(data)
-        if data['amount'] <= 0:
+        if data['amount'] < 1:
             raise ValueError(
                 'убедитесь что количество ингредиентов больше или равно 1')
         return result
 
 
 class TagtSerializer(serializers.ModelSerializer):
-    color = Hex2NameColor()
 
     class Meta:
         fields = ('id', 'name', 'color', 'slug')
@@ -57,9 +57,9 @@ class RecipeSerializer(serializers.ModelSerializer):
     author = AuthorSerializers(required=False)
     ingredients = IngredientInRecipeSerializer(
         many=True, required=True, source='ingredients_in_recipe')
-    image = Base64ImageField(required=True, allow_null=True)
+    image = Base64ImageField(required=False, allow_null=True)
     tags = serializers.PrimaryKeyRelatedField(
-        many=True, queryset=Tag.objects.all())
+        many=True, queryset=Tag.objects.all(), required=True)
 
     class Meta:
         fields = ('__all__')
@@ -68,7 +68,23 @@ class RecipeSerializer(serializers.ModelSerializer):
     def validate(self, data):
         result = super().validate(data)
         if not data['ingredients_in_recipe']:
-            raise ValueError('должен быть хотябы один ингредиент')
+            raise serializers.ValidationError(
+                'должен быть хотябы один ингредиент')
+        list_ingr = [item['id']
+                     for item in data['ingredients_in_recipe']]
+        all_ingredients, distinct_ingredients = (
+            len(list_ingr), len(set(list_ingr)))
+        if len(list_ingr) < 1:
+            raise serializers.ValidationError('должен минимум один ингредиент')
+        if not data['tags']:
+            raise serializers.ValidationError('Должен быть минимум один тег')
+        if all_ingredients != distinct_ingredients:
+            raise serializers.ValidationError(
+                'Ингредиенты должны быть уникальными')
+        if data['cooking_time'] < 1:
+            raise serializers.ValidationError(
+                'время приготовления должно состовлять минимум минуту')
+
         return result
 
     @transaction.atomic
@@ -208,6 +224,7 @@ class IngredientsSerializers(serializers.ModelSerializer):
 
 
 class RecipeListSerializers(RecipeSerializer):
+    tags = TagtSerializer(many=True, read_only=True)
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
@@ -263,10 +280,11 @@ class UserSubscriptions(serializers.ModelSerializer):
 
 class RecipeMinified(serializers.ModelSerializer):
     image = Base64ImageField(required=True, allow_null=True)
+    tags = TagtSerializer(many=True, read_only=True)
 
     class Meta:
         model = Recipe
-        fields = ('id', 'image', 'name', 'cooking_time')
+        fields = ('id', 'image', 'name', 'cooking_time', 'tags')
 
 
 class FavoriteRecipeSerializers(serializers.ModelSerializer):
@@ -308,3 +326,15 @@ class ShoppingListSerializer(serializers.ModelSerializer):
 
         data['recipes'] = serializers.data
         return data
+
+
+class RecipeNotAuthenticated(serializers.ModelSerializer):
+    author = AuthorSerializers(required=False)
+    ingredients = IngredientInRecipeSerializer(
+        many=True, required=True, source='ingredients_in_recipe')
+    image = Base64ImageField(required=False, allow_null=True)
+    tags = TagtSerializer(many=True, read_only=True)
+
+    class Meta:
+        fields = ('__all__')
+        model = Recipe

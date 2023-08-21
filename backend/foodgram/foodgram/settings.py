@@ -10,8 +10,10 @@ SECRET_KEY = 'django-insecure-)q2ry*6z%s*otaeb(2olwgz#djo%o5(&p1e)y7svjeht_d=mv5
 
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['84.252.139.150', '127.0.0.1',
+                 'localhost', 'alexmatveevhomework.ddns.net']
 
+CSRF_TRUSTED_ORIGINS = ['https://alexmatveevhomework.ddns.net']
 
 # Application definition
 

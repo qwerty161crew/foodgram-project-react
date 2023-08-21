@@ -16,7 +16,7 @@ from django.contrib.auth.models import User
 from django.db.models import Sum
 
 from recipe.models import (Recipe, ShoppingList, Follow,
-                           Ingredient, Tag, FavoritesRecipe, 
+                           Ingredient, Tag, FavoritesRecipe,
                            IngredientsRecipe)
 
 from .serializers import (RecipeSerializer, TagtSerializer,
@@ -24,7 +24,8 @@ from .serializers import (RecipeSerializer, TagtSerializer,
                           CustomUserSerializer, FollowSerializer,
                           IngredientsSerializers, RecipeListSerializers,
                           UserWithRecipes, UserSubscriptions,
-                          FavoriteRecipeSerializers
+                          FavoriteRecipeSerializers,
+                          RecipeNotAuthenticated
                           )
 from .filters import RecipeFilter
 
@@ -36,6 +37,8 @@ class RecipeViewset(viewsets.ModelViewSet):
     pagination_class = LimitOffsetPagination
 
     def get_serializer_class(self):
+        if not self.request.user.is_authenticated:
+            return RecipeNotAuthenticated
         if self.action in ('list', 'retrieve'):
             return RecipeListSerializers
         return RecipeSerializer
@@ -165,24 +168,28 @@ class CustomUserViewSet(UserViewSet):
             return ListUserSerializer
         return CustomUserSerializer
 
-    @action(detail=True, methods=['POST'])
+    @action(detail=True, methods=['POST', 'DELETE'])
     def subscribe(self, request, *args, **kwargs):
         author = self.get_object()
         user = request.user
         context = super().get_serializer_context()
-        if author.id == user.id:
-            return Response(status=status.HTTP_400_BAD_REQUEST,
-                            data={'errors':
-                                  'Вы не можете подписаться на самого себя'})
-        try:
-            Follow.objects.create(user=user, author=author)
-        except IntegrityError:
-            return Response(status=status.HTTP_400_BAD_REQUEST,
-                            data={'errors':
-                                  'вы уже подписаны на данного пользователя'})
-        serializer = UserWithRecipes(instance=author, context=context)
+        if request.method == 'POST':
+            if author.id == user.id:
+                return Response(status=status.HTTP_400_BAD_REQUEST,
+                                data={'errors':
+                                      'Вы не можете подписаться на самого себя'})
+            try:
+                Follow.objects.create(user=user, author=author)
+            except IntegrityError:
+                return Response(status=status.HTTP_400_BAD_REQUEST,
+                                data={'errors':
+                                      'вы уже подписаны на данного пользователя'})
+            serializer = UserWithRecipes(instance=author, context=context)
 
-        return Response(status=status.HTTP_201_CREATED, data=serializer.data)
+            return Response(status=status.HTTP_201_CREATED, data=serializer.data)
+        if request.method == 'DELETE':
+            Follow.objects.filter(user=user, author=author).delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=False, methods=['GET'])
     def subscriptions(self, request, *args, **kwargs):
@@ -192,7 +199,7 @@ class CustomUserViewSet(UserViewSet):
         paginator = PageNumberPagination()
         results = paginator.paginate_queryset(users, request)
         context = self.get_serializer_context()
-        serializer = UserSubscriptions(
+        serializer = UserWithRecipes(
             results, context=context, many=True)
         # serializer.is_valid()
         return paginator.get_paginated_response(serializer.data)
